@@ -1,0 +1,687 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Syne:wght@400..800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== CSS Variables ===== */
+:root {
+  /* Dark mode palette from template */
+  --base: #394139;          /* main background */
+  --pcb-green: #6b716b;     /* primary accent / borders */
+  --cap-cyan: #9ca09c;      /* secondary accent */
+  --alert-red: #FF5A3C;
+  --solder-gold: #ced0ce;   /* soft highlight */
+  --pcb-beige: #f6f7fb;    /* light-mode background */
+  --deep-navy: #1A1A2E;
+  --backlit-white: #ffffff; /* brightest text / highlights */
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Syne', sans-serif;
+}
+
+/* ===== Base Reset ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--base);
+  color: var(--backlit-white);
+  overflow-x: hidden;
+  min-height: 100vh;
+  transition: background 0.6s ease, color 0.6s ease;
+}
+
+/* Light mode body */
+body.light-mode {
+  background:#f6f7fb;
+  color:#2A2A3A;
+}
+
+/* ===== Noise Texture Overlay ===== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ===== Scanline Overlay ===== */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 136, 0.015) 2px,
+    rgba(0, 255, 136, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Light mode — no scanlines */
+body.light-mode::after {
+  opacity: 0;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0F;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pcb-green);
+  border-radius: 2px;
+}
+
+body.light-mode ::-webkit-scrollbar-track {
+  background: var(--pcb-beige);
+}
+body.light-mode ::-webkit-scrollbar-thumb {
+  background:#9eb0d2;
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: rgba(75, 216, 160, 0.25);
+  color: var(--pcb-green);
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Board Container ===== */
+.board-container {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* ===== PCB Trace Animation ===== */
+.pcb-trace {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+
+.pcb-trace.animated {
+  animation: trace-draw 2s ease-out forwards;
+}
+
+@keyframes trace-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ===== Bootloader Terminal ===== */
+.boot-terminal {
+  font-family: var(--font-mono);
+  background: rgba(31, 35, 31, 0.96);
+  border: 1px solid rgba(107, 113, 107, 0.6);
+  box-shadow: 0 0 40px rgba(107, 113, 107, 0.18), inset 0 0 40px rgba(0, 0, 0, 0.55);
+}
+
+.boot-line {
+  opacity: 0;
+  animation: boot-line-appear 0.3s ease-out forwards;
+}
+
+@keyframes boot-line-appear {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== Glitch Effect ===== */
+.glitch-flash {
+  animation: glitch-flash 0.3s steps(1) forwards;
+}
+
+@keyframes glitch-flash {
+  0% { filter: hue-rotate(0deg); }
+  20% { filter: hue-rotate(90deg) brightness(1.5); }
+  40% { filter: hue-rotate(180deg) contrast(1.2); }
+  60% { filter: hue-rotate(270deg) brightness(0.8); }
+  80% { filter: hue-rotate(360deg); }
+  100% { filter: hue-rotate(0deg); }
+}
+
+/* ===== Section Base ===== */
+.section-base {
+  min-height: 100vh;
+  padding: 5rem 2.5rem;
+  position: relative;
+}
+
+/* ===== PCB Module Card ===== */
+.pcb-card {
+  background: rgba(156, 160, 156, 0.05);
+  border: 1px solid rgba(107, 113, 107, 0.7);
+  border-radius: 4px;
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.pcb-card:hover {
+  border-color: rgba(0, 255, 136, 0.5);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+body.light-mode .pcb-card {
+
+  background: rgba(208,206,225,0.35);
+
+  border-color: rgba(158,176,210,0.6);
+
+}
+
+body.light-mode .pcb-card:hover {
+
+  border-color:#50b1ce;
+
+  box-shadow:0 0 16px rgba(80,177,206,0.25);
+
+}
+/* ===== Skill Bar ===== */
+.skill-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 255, 136, 0.1);
+  overflow: hidden;
+  position: relative;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.5s ease-out;
+}
+
+/* ===== Oscilloscope ===== */
+.oscilloscope-container {
+  background: #000810;
+  border: 2px solid rgba(0, 255, 136, 0.4);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.oscilloscope-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 136, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ===== Changelog Entry ===== */
+.changelog-entry {
+  border-left: 2px solid rgba(0, 255, 136, 0.3);
+  padding-left: 1.5rem;
+  position: relative;
+  transition: border-color 0.3s;
+}
+.changelog-entry::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 0.4rem;
+  width: 8px;
+  height: 8px;
+  background: var(--pcb-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--pcb-green);
+}
+.changelog-entry:hover {
+  border-color: var(--pcb-green);
+}
+
+/* ===== Power Switch (Theme Toggle) ===== */
+.power-switch {
+  width: 48px;
+  height: 26px;
+  background: rgba(255, 61, 0, 0.3);
+  border: 1.5px solid rgba(255, 61, 0, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.3s;
+}
+.power-switch.on {
+  background: rgba(0, 255, 136, 0.3);
+  border-color: rgba(0, 255, 136, 0.5);
+}
+.power-switch-lever {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #888 0%, #555 100%);
+  border-radius: 2px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.power-switch.on .power-switch-lever {
+  transform: translateX(22px);
+  background: linear-gradient(135deg, #D4A843 0%, #a07820 100%);
+}
+
+/* ===== Debug Overlay ===== */
+.debug-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 99999;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--backlit-white);
+  padding: 1rem;
+}
+
+/* ===== Iris Transition Overlay ===== */
+.iris-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0A0A0F;
+  z-index: 99990;
+  transform: scale(0);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ===== Tractor Beam ===== */
+.tractor-beam {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 80px;
+  background: radial-gradient(ellipse at top, rgba(0, 255, 136, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+  transition: transform 0.1s ease;
+}
+
+/* ===== Board Eye (LED) ===== */
+.board-eye {
+  transition: filter 0.1s ease;
+}
+
+/* ===== Form Inputs ===== */
+.hud-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 2px;
+  color: #e0ffe8;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.hud-input:focus {
+  border-color: rgba(0, 255, 136, 0.6);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.1);
+}
+.hud-input::placeholder {
+  color: rgba(0, 255, 136, 0.3);
+  font-size: 0.75rem;
+}
+
+body.light-mode .hud-input {
+
+  background:#ffffff;
+
+  border-color:#9eb0d2;
+
+  color:#2A2A3A;
+
+}
+
+body.light-mode .hud-input:focus {
+
+  border-color:#50b1ce;
+
+  box-shadow:0 0 10px rgba(80,177,206,0.2);
+
+}
+body.light-mode .hud-input::placeholder {
+  color: rgba(26, 26, 46, 0.4);
+}
+
+/* ===== Tooltip ===== */
+.pcb-tooltip {
+  position: absolute;
+  background: rgba(0, 5, 15, 0.96);
+  border: 1px solid rgba(107, 113, 107, 0.7);
+  border-radius: 3px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--backlit-white);
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(75, 216, 160, 0.24);
+}
+
+/* ===== Light mode accents ===== */
+body.light-mode {
+
+  /* Primary accent */
+  --pcb-green: #50b1ce;
+
+  /* Secondary accent */
+  --cap-cyan: #79bfc9;
+
+}
+
+body.light-mode .changelog-entry::before {
+
+  background:#50b1ce;
+
+  box-shadow:0 0 6px #50b1ce;
+
+}
+
+body.light-mode .changelog-entry {
+  border-left-color: rgba(80, 177, 206, 0.4);
+}
+
+/* ===== Status bar ===== */
+.status-bar {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ===== Nav Glass ===== */
+.nav-glass {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(40, 46, 40, 0.94);
+  border-bottom: 1px solid rgba(107, 113, 107, 0.6);
+}
+body.light-mode .nav-glass {
+
+  background:rgba(255,255,255,0.8);
+
+  border-bottom-color:#9eb0d2;
+
+}
+
+/* ===== Spark Particle ===== */
+.spark {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background:#79bfc9;
+  pointer-events: none;
+  z-index: 99997;
+}
+
+/* ===== Datasheet Table ===== */
+.datasheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.datasheet-table th {
+  border-bottom: 1px solid rgba(75, 216, 160, 0.3);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  color: rgba(75, 216, 160, 0.72);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+.datasheet-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(75, 216, 160, 0.08);
+  color: #c0f3de;
+  line-height: 1.5;
+}
+.datasheet-table tr:last-child td { border-bottom: none; }
+
+body.light-mode .datasheet-table th {
+
+  border-bottom-color:#9eb0d2;
+
+  color:#6b7a99;
+
+}
+body.light-mode .datasheet-table td {
+
+  border-bottom-color:#d0cee1;
+
+  color:#2A2A3A;
+
+}
+
+/* ===== Responsive Layouts ===== */
+
+@media (max-width: 1024px) {
+  .section-base {
+    padding: 4rem 1.75rem;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-base {
+    padding: 3rem 1.5rem;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .nav-glass {
+    padding-inline: 1rem !important;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .section-base {
+    padding: 2.75rem 1.25rem;
+  }
+
+  .boot-terminal {
+    padding-inline: 1rem;
+  }
+
+  .oscilloscope-container {
+    height: 80px;
+  }
+
+  /* Hide full nav link cluster on small phones so logo/title stay visible */
+  .nav-links {
+    display: none !important;
+  }
+}
+
+body.light-mode .oscilloscope-container {
+  background: #eef2fa;
+  border-color: rgba(80, 177, 206, 0.45);
+}
+
+body.light-mode .oscilloscope-grid {
+  background-image:
+    linear-gradient(rgba(80, 177, 206, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 177, 206, 0.07) 1px, transparent 1px);
+}
+
+/* ===== Levitate (PCB board float) ===== */
+@keyframes levitate {
+  0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
+  33%       { transform: translateY(-8px) rotate(0.3deg); }
+  66%       { transform: translateY(-4px) rotate(-0.2deg); }
+}
+
+/* ===== Glow pulse (board ambient) ===== */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scaleX(1); }
+  50%       { opacity: 1;   transform: scaleX(1.08); }
+}
+
+/* ===== Heartbeat (contact success) ===== */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1);    }
+  14%       { transform: scale(1.14); }
+  28%       { transform: scale(1);    }
+  42%       { transform: scale(1.08); }
+  56%       { transform: scale(1);    }
+}
+
+/* ===== Heart ring pulse ===== */
+@keyframes heart-ring {
+  0%   { r: 22; opacity: 0.35; }
+  100% { r: 38; opacity: 0; }
+}
+
+/* ===== Antenna blink (idle character) ===== */
+@keyframes antenna-blink {
+  0%, 90%, 100% { opacity: 1;   }
+  45%            { opacity: 0.2; }
+}
+
+/* ===== Blink-slow (board LED when cursor outside) ===== */
+@keyframes blink-slow {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.3; }
+}
+
+/* ===== PCB LED green pulse ===== */
+.pcb-led-green {
+  animation: led-green-pulse 2.4s ease-in-out infinite;
+}
+@keyframes led-green-pulse {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 0.3; }
+}
+
+/* ===== Running character — legs ===== */
+/* Each leg alternates forward/back in lock-step, half-phase apart */
+@keyframes leg-run-left {
+  0%   { transform: rotate(-28deg); }
+  50%  { transform: rotate(28deg);  }
+  100% { transform: rotate(-28deg); }
+}
+@keyframes leg-run-right {
+  0%   { transform: rotate(28deg);  }
+  50%  { transform: rotate(-28deg); }
+  100% { transform: rotate(28deg);  }
+}
+
+/* ===== Running character — arms (counter-swing to legs) ===== */
+@keyframes arm-pump-left {
+  0%   { transform: rotate(28deg);  }
+  50%  { transform: rotate(-28deg); }
+  100% { transform: rotate(28deg);  }
+}
+@keyframes arm-pump-right {
+  0%   { transform: rotate(-28deg); }
+  50%  { transform: rotate(28deg);  }
+  100% { transform: rotate(-28deg); }
+}
+
+/* ===== Levitate — pure vertical, NO rotation (mechanical float) ===== */
+@keyframes levitate {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-9px); }
+}
+
+/* ===== Light mode — earthy industrial palette (from uploaded swatch) ===== */
+/* Swatch: #C9CFC8 · #687078 · #C07838 · #4A5560 · #36424A · #1C2226 */
+body.light-mode {
+  background: #C9CFC8;
+  color: #1C2226;
+  --pcb-green: #C07838;   /* burnt orange as accent */
+  --cap-cyan:  #687078;   /* mid gray-blue */
+}
+
+body.light-mode ::-webkit-scrollbar-track {
+  background: #C9CFC8;
+}
+body.light-mode ::-webkit-scrollbar-thumb {
+  background: #687078;
+}
+
+body.light-mode .nav-glass {
+  background: rgba(201,207,200,0.92);
+  border-bottom-color: rgba(104,112,120,0.45);
+}
+
+body.light-mode .pcb-card {
+  background: rgba(54,66,74,0.08);
+  border-color: rgba(104,112,120,0.5);
+}
+body.light-mode .pcb-card:hover {
+  border-color: #C07838;
+  box-shadow: 0 0 16px rgba(192,120,56,0.22);
+}
+
+body.light-mode .changelog-entry {
+  border-left-color: rgba(192,120,56,0.4);
+}
+body.light-mode .changelog-entry::before {
+  background: #C07838;
+  box-shadow: 0 0 6px #C07838;
+}
+
+body.light-mode .hud-input {
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(104,112,120,0.55);
+  color: #1C2226;
+}
+body.light-mode .hud-input:focus {
+  border-color: #C07838;
+  box-shadow: 0 0 10px rgba(192,120,56,0.2);
+}
+body.light-mode .hud-input::placeholder {
+  color: rgba(28,34,38,0.38);
+}
+
+body.light-mode .oscilloscope-container {
+  background: #36424A;
+  border-color: rgba(192,120,56,0.5);
+}
+body.light-mode .oscilloscope-grid {
+  background-image:
+    linear-gradient(rgba(192,120,56,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(192,120,56,0.08) 1px, transparent 1px);
+}
+
+body.light-mode .datasheet-table th {
+  border-bottom-color: rgba(192,120,56,0.4);
+  color: #C07838;
+}
+body.light-mode .datasheet-table td {
+  border-bottom-color: rgba(104,112,120,0.25);
+  color: #1C2226;
+}
