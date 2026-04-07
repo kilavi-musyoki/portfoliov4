@@ -17,20 +17,21 @@ const SPECS = [
 
 const About = ({ isDark }) => {
 
-const textColor = isDark ? '#ced0ce' : '#1A1A2E';
+const textColor = isDark ? '#ced0ce' : '#1C2226';
 
 const dimColor = isDark
 ? 'rgba(156,160,156,0.9)'
-: 'rgba(26,26,46,0.5)';
+: 'rgba(28,34,38,0.52)';
 
 const borderColor = isDark
 ? '#ced0ce33'
-: '#1A1A2E22';
+: 'rgba(104,112,120,0.3)';
 
 const bgCard = isDark
 ? '#ced0ce08'
-: '#1A1A2E05';
+: 'rgba(255,255,255,0.45)';
 
+const accentColor = isDark ? '#ced0ce' : '#C07838';
 
 return(
 
@@ -405,7 +406,8 @@ style={{
 
 height:'100%',
 
-background:textColor
+background: accentColor,
+opacity: 0.85,
 
 }}
 

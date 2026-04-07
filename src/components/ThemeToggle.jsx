@@ -1,8 +1,10 @@
 import React from 'react';
 
 const ThemeToggle = ({ isDark, onToggle }) => {
-    const labelColor = isDark ? 'rgba(206,208,206,0.8)' : 'rgba(26,26,46,0.5)';
-    const accentColor = isDark ? '#ffffff' : '#D4A843';
+    const labelColor = isDark ? 'rgba(206,208,206,0.7)' : 'rgba(28,34,38,0.52)';
+    const accentColor = isDark ? '#ced0ce' : '#C07838';
+    const borderIdle = isDark ? 'rgba(107,113,107,0.5)' : 'rgba(104,112,120,0.4)';
+    const bgColor = isDark ? 'rgba(57,65,57,0.8)' : 'rgba(255,255,255,0.45)';
 
     return (
         <button
@@ -15,18 +17,18 @@ const ThemeToggle = ({ isDark, onToggle }) => {
                 gap: 8,
                 padding: '4px 10px',
                 borderRadius: 2,
-                border: `1px solid ${isDark ? 'rgba(156,160,156,0.7)' : 'rgba(212,168,67,0.3)'}`,
-                background: isDark ? 'rgba(57,65,57,0.9)' : 'rgba(245,240,232,0.7)',
+                border: `1px solid ${borderIdle}`,
+                background: bgColor,
                 cursor: 'pointer',
-                transition: 'background 0.2s ease, border-color 0.2s ease',
+                transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
             }}
             onMouseEnter={e => {
                 e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 10px ${isDark ? 'rgba(206,208,206,0.2)' : 'rgba(192,120,56,0.25)'}`;
             }}
             onMouseLeave={e => {
-                e.currentTarget.style.borderColor = isDark
-                    ? 'rgba(156,160,156,0.7)'
-                    : 'rgba(212,168,67,0.3)';
+                e.currentTarget.style.borderColor = borderIdle;
+                e.currentTarget.style.boxShadow = 'none';
             }}
         >
             {/* tiny mode chip */}
@@ -36,7 +38,7 @@ const ThemeToggle = ({ isDark, onToggle }) => {
                     height: 7,
                     borderRadius: '50%',
                     background: accentColor,
-                    boxShadow: `0 0 4px ${accentColor}`,
+                    boxShadow: `0 0 6px ${isDark ? 'rgba(206,208,206,0.5)' : 'rgba(192,120,56,0.5)'}`,
                 }}
             />
             <span

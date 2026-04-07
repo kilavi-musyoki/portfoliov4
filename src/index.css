@@ -5,7 +5,7 @@
 
 /* ===== CSS Variables ===== */
 :root {
-  /* Dark mode palette from template */
+  /* Dark mode palette */
   --base: #394139;          /* main background */
   --pcb-green: #6b716b;     /* primary accent / borders */
   --cap-cyan: #9ca09c;      /* secondary accent */
@@ -16,6 +16,18 @@
   --backlit-white: #ffffff; /* brightest text / highlights */
   --font-mono: 'JetBrains Mono', monospace;
   --font-display: 'Syne', sans-serif;
+
+  /* Light mode palette — earthy industrial */
+  --lm-bg:         #E8EAE7;   /* warm light gray-green base */
+  --lm-bg-alt:     #D6D9D5;   /* slightly darker variant for cards */
+  --lm-bg-card:    rgba(255,255,255,0.45); /* glass card surface */
+  --lm-text:       #1C2226;   /* deep navy-charcoal */
+  --lm-dim:        rgba(28,34,38,0.52);
+  --lm-accent:     #C07838;   /* burnt orange */
+  --lm-accent-alt: #A0622C;   /* deeper orange for hover */
+  --lm-glow:       rgba(192,120,56,0.35);
+  --lm-border:     rgba(104,112,120,0.45);
+  --lm-border-alt: rgba(104,112,120,0.25);
 }
 
 /* ===== Base Reset ===== */
@@ -39,10 +51,12 @@ body {
   transition: background 0.6s ease, color 0.6s ease;
 }
 
-/* Light mode body */
+/* Light mode body — earthy industrial palette */
 body.light-mode {
-  background:#f6f7fb;
-  color:#2A2A3A;
+  background: var(--lm-bg);
+  color: var(--lm-text);
+  --pcb-green: var(--lm-accent);
+  --cap-cyan: #687078;
 }
 
 /* ===== Noise Texture Overlay ===== */
@@ -90,10 +104,11 @@ body.light-mode::after {
 }
 
 body.light-mode ::-webkit-scrollbar-track {
-  background: var(--pcb-beige);
+  background: var(--lm-bg);
 }
 body.light-mode ::-webkit-scrollbar-thumb {
-  background:#9eb0d2;
+  background: var(--lm-accent);
+  border-radius: 2px;
 }
 
 /* ===== Selection ===== */
@@ -184,19 +199,14 @@ body.light-mode ::-webkit-scrollbar-thumb {
 }
 
 body.light-mode .pcb-card {
-
-  background: rgba(208,206,225,0.35);
-
-  border-color: rgba(158,176,210,0.6);
-
+  background: var(--lm-bg-card);
+  border-color: var(--lm-border);
+  box-shadow: 0 2px 12px rgba(28,34,38,0.06);
 }
 
 body.light-mode .pcb-card:hover {
-
-  border-color:#50b1ce;
-
-  box-shadow:0 0 16px rgba(80,177,206,0.25);
-
+  border-color: var(--lm-accent);
+  box-shadow: 0 0 20px var(--lm-glow), 0 4px 20px rgba(28,34,38,0.1);
 }
 /* ===== Skill Bar ===== */
 .skill-bar {
@@ -349,24 +359,18 @@ body.light-mode .pcb-card:hover {
 }
 
 body.light-mode .hud-input {
-
-  background:#ffffff;
-
-  border-color:#9eb0d2;
-
-  color:#2A2A3A;
-
+  background: rgba(255,255,255,0.7);
+  border-color: var(--lm-border);
+  color: var(--lm-text);
 }
 
 body.light-mode .hud-input:focus {
-
-  border-color:#50b1ce;
-
-  box-shadow:0 0 10px rgba(80,177,206,0.2);
-
+  border-color: var(--lm-accent);
+  box-shadow: 0 0 12px var(--lm-glow);
+  background: rgba(255,255,255,0.9);
 }
 body.light-mode .hud-input::placeholder {
-  color: rgba(26, 26, 46, 0.4);
+  color: rgba(28,34,38,0.36);
 }
 
 /* ===== Tooltip ===== */
@@ -385,27 +389,14 @@ body.light-mode .hud-input::placeholder {
   box-shadow: 0 0 12px rgba(75, 216, 160, 0.24);
 }
 
-/* ===== Light mode accents ===== */
-body.light-mode {
-
-  /* Primary accent */
-  --pcb-green: #50b1ce;
-
-  /* Secondary accent */
-  --cap-cyan: #79bfc9;
-
-}
-
+/* ===== Light mode changelog ===== */
 body.light-mode .changelog-entry::before {
-
-  background:#50b1ce;
-
-  box-shadow:0 0 6px #50b1ce;
-
+  background: var(--lm-accent);
+  box-shadow: 0 0 8px var(--lm-glow);
 }
 
 body.light-mode .changelog-entry {
-  border-left-color: rgba(80, 177, 206, 0.4);
+  border-left-color: rgba(192,120,56,0.45);
 }
 
 /* ===== Status bar ===== */
@@ -424,11 +415,10 @@ body.light-mode .changelog-entry {
   border-bottom: 1px solid rgba(107, 113, 107, 0.6);
 }
 body.light-mode .nav-glass {
-
-  background:rgba(255,255,255,0.8);
-
-  border-bottom-color:#9eb0d2;
-
+  background: rgba(232,234,231,0.88);
+  border-bottom-color: rgba(104,112,120,0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* ===== Spark Particle ===== */
@@ -468,18 +458,12 @@ body.light-mode .nav-glass {
 .datasheet-table tr:last-child td { border-bottom: none; }
 
 body.light-mode .datasheet-table th {
-
-  border-bottom-color:#9eb0d2;
-
-  color:#6b7a99;
-
+  border-bottom-color: var(--lm-border);
+  color: var(--lm-accent);
 }
 body.light-mode .datasheet-table td {
-
-  border-bottom-color:#d0cee1;
-
-  color:#2A2A3A;
-
+  border-bottom-color: var(--lm-border-alt);
+  color: var(--lm-text);
 }
 
 /* ===== Responsive Layouts ===== */
@@ -526,14 +510,14 @@ body.light-mode .datasheet-table td {
 }
 
 body.light-mode .oscilloscope-container {
-  background: #eef2fa;
-  border-color: rgba(80, 177, 206, 0.45);
+  background: #2E3A42;
+  border-color: rgba(192,120,56,0.55);
 }
 
 body.light-mode .oscilloscope-grid {
   background-image:
-    linear-gradient(rgba(80, 177, 206, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(80, 177, 206, 0.07) 1px, transparent 1px);
+    linear-gradient(rgba(192,120,56,0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(192,120,56,0.09) 1px, transparent 1px);
 }
 
 /* ===== Levitate (PCB board float) ===== */
@@ -616,72 +600,21 @@ body.light-mode .oscilloscope-grid {
   50%       { transform: translateY(-9px); }
 }
 
-/* ===== Light mode — earthy industrial palette (from uploaded swatch) ===== */
-/* Swatch: #C9CFC8 · #687078 · #C07838 · #4A5560 · #36424A · #1C2226 */
-body.light-mode {
-  background: #C9CFC8;
-  color: #1C2226;
-  --pcb-green: #C07838;   /* burnt orange as accent */
-  --cap-cyan:  #687078;   /* mid gray-blue */
+/* ===== Light mode — additional polish ===== */
+
+/* Subtle texture on light mode background */
+body.light-mode::before {
+  opacity: 0.025;
 }
 
-body.light-mode ::-webkit-scrollbar-track {
-  background: #C9CFC8;
-}
-body.light-mode ::-webkit-scrollbar-thumb {
-  background: #687078;
-}
-
-body.light-mode .nav-glass {
-  background: rgba(201,207,200,0.92);
-  border-bottom-color: rgba(104,112,120,0.45);
+/* Selection color */
+body.light-mode ::selection {
+  background: rgba(192,120,56,0.2);
+  color: var(--lm-accent);
 }
 
+/* Enhanced card shadow in light */
 body.light-mode .pcb-card {
-  background: rgba(54,66,74,0.08);
-  border-color: rgba(104,112,120,0.5);
-}
-body.light-mode .pcb-card:hover {
-  border-color: #C07838;
-  box-shadow: 0 0 16px rgba(192,120,56,0.22);
-}
-
-body.light-mode .changelog-entry {
-  border-left-color: rgba(192,120,56,0.4);
-}
-body.light-mode .changelog-entry::before {
-  background: #C07838;
-  box-shadow: 0 0 6px #C07838;
-}
-
-body.light-mode .hud-input {
-  background: rgba(255,255,255,0.7);
-  border-color: rgba(104,112,120,0.55);
-  color: #1C2226;
-}
-body.light-mode .hud-input:focus {
-  border-color: #C07838;
-  box-shadow: 0 0 10px rgba(192,120,56,0.2);
-}
-body.light-mode .hud-input::placeholder {
-  color: rgba(28,34,38,0.38);
-}
-
-body.light-mode .oscilloscope-container {
-  background: #36424A;
-  border-color: rgba(192,120,56,0.5);
-}
-body.light-mode .oscilloscope-grid {
-  background-image:
-    linear-gradient(rgba(192,120,56,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(192,120,56,0.08) 1px, transparent 1px);
-}
-
-body.light-mode .datasheet-table th {
-  border-bottom-color: rgba(192,120,56,0.4);
-  color: #C07838;
-}
-body.light-mode .datasheet-table td {
-  border-bottom-color: rgba(104,112,120,0.25);
-  color: #1C2226;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }

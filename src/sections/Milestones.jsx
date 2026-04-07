@@ -34,8 +34,9 @@ const CHANGELOG = [
 
 const Milestones = ({ isDark }) => {
     const [hoveredIdx, setHoveredIdx] = useState(null);
-    const textColor = isDark ? '#ced0ce' : '#1A1A2E';
-    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(26,26,46,0.5)';
+    const textColor = isDark ? '#ced0ce' : '#1C2226';
+    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(28,34,38,0.52)';
+    const bodyColor = isDark ? 'rgba(176,255,204,0.7)' : 'rgba(28,34,38,0.65)';
 
     return (
         <section id="milestones" className="section-base" data-debug="milestones-section">
@@ -116,7 +117,7 @@ const Milestones = ({ isDark }) => {
                             <p style={{
                                 fontFamily: 'JetBrains Mono',
                                 fontSize: '0.75rem',
-                                color: isDark ? 'rgba(176,255,204,0.7)' : 'rgba(26,26,46,0.65)',
+                                color: bodyColor,
                                 lineHeight: 1.7,
                                 maxWidth: '600px',
                             }}>

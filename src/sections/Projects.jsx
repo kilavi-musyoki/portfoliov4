@@ -135,11 +135,21 @@ const RepoLink = ({ url, color }) => {
 };
 
 const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
-    const textColor = isDark ? '#ced0ce' : '#1A1A2E';
-    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(26,26,46,0.5)';
+    const textColor = isDark ? '#ced0ce' : '#1C2226';
+    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(28,34,38,0.52)';
 
-    const borderColor = `${project.color}${isExpanded ? '55' : '22'}`;
-    const bgCard = `${project.color}${isExpanded ? '0a' : '06'}`;
+    // In light mode, project.color values are dark (e.g. #394139) — use a
+    // consistent warm card style instead of deriving from those dark colors.
+    const borderColor = isDark
+        ? `${project.color}${isExpanded ? '55' : '22'}`
+        : isExpanded ? 'rgba(192,120,56,0.55)' : 'rgba(104,112,120,0.35)';
+    const bgCard = isDark
+        ? `${project.color}${isExpanded ? '0a' : '06'}`
+        : isExpanded ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)';
+
+    // Module color badge — must be visible in both modes
+    const moduleColor = isDark ? project.color : '#C07838';
+
 
     return (
         <motion.div
@@ -155,7 +165,7 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                 borderRadius: '4px',
                 overflow: 'hidden',
                 cursor: 'pointer',
-                boxShadow: isExpanded ? `0 0 24px ${project.color}14` : 'none',
+                boxShadow: isExpanded ? `0 0 24px ${moduleColor}22` : 'none',
                 transition: 'all 0.3s ease',
             }}
             onClick={onToggle}
@@ -172,9 +182,9 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                     {/* Module icon */}
                     <div style={{
                         width: '48px', height: '48px', flexShrink: 0,
-                        border: `1px solid ${project.color}33`,
+                        border: `1px solid ${moduleColor}44`,
                         borderRadius: '3px',
-                        background: `${project.color}0e`,
+                        background: `${moduleColor}12`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '1.5rem',
                     }}>
@@ -182,10 +192,10 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                     </div>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                            <span style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: project.color, letterSpacing: '0.1em' }}>
+                            <span style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: moduleColor, letterSpacing: '0.1em' }}>
                                 MODULE {project.number}
                             </span>
-                            <div style={{ width: '40px', height: '1px', background: `${project.color}33` }} />
+                            <div style={{ width: '40px', height: '1px', background: `${moduleColor}44` }} />
                         </div>
                         <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: textColor, marginBottom: '4px' }}>
                             {project.title}
@@ -200,7 +210,7 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                 <motion.div
                     animate={{ rotate: isExpanded ? 45 : 0 }}
                     transition={{ duration: 0.3 }}
-                    style={{ color: project.color, fontSize: '1.2rem', flexShrink: 0, marginTop: '4px' }}
+                    style={{ color: moduleColor, fontSize: '1.2rem', flexShrink: 0, marginTop: '4px' }}
                 >
                     +
                 </motion.div>
@@ -219,14 +229,14 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                     >
                         <div style={{
                             padding: '0 24px 20px',
-                            borderTop: `1px solid ${project.color}18`,
+                            borderTop: `1px solid ${moduleColor}22`,
                             paddingTop: '16px',
                             display: 'grid',
                             gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
                             gap: '16px',
                         }}>
                             <div>
-                                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.6rem', color: project.color, letterSpacing: '0.1em', marginBottom: '6px', opacity: 0.8 }}>
+                                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.6rem', color: moduleColor, letterSpacing: '0.1em', marginBottom: '6px', opacity: 0.8 }}>
                                     // OVERVIEW
                                 </div>
                                 <p style={{ fontFamily: 'JetBrains Mono', fontSize: '0.75rem', color: textColor, lineHeight: 1.7 }}>
@@ -234,7 +244,7 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                                 </p>
                             </div>
                             <div>
-                                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.6rem', color: project.color, letterSpacing: '0.1em', marginBottom: '6px', opacity: 0.8 }}>
+                                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.6rem', color: moduleColor, letterSpacing: '0.1em', marginBottom: '6px', opacity: 0.8 }}>
                                     // RESULT
                                 </div>
                                 <p style={{ fontFamily: 'JetBrains Mono', fontSize: '0.75rem', color: dimColor, lineHeight: 1.7 }}>
@@ -251,17 +261,17 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
                                         fontFamily: 'JetBrains Mono',
                                         fontSize: '0.6rem',
                                         padding: '3px 8px',
-                                        border: `1px solid ${project.color}33`,
+                                        border: `1px solid ${moduleColor}44`,
                                         borderRadius: '2px',
-                                        color: project.color,
-                                        background: `${project.color}0c`,
+                                        color: moduleColor,
+                                        background: `${moduleColor}12`,
                                         letterSpacing: '0.04em',
                                     }}>
                                         {tech}
                                     </span>
                                 ))}
                             </div>
-                            <RepoLink url={project.repo} color={project.color} />
+                            <RepoLink url={project.repo} color={moduleColor} />
                         </div>
                     </motion.div>
                 )}
@@ -270,7 +280,7 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
             {/* PCB connector strip */}
             <div style={{
                 height: '3px',
-                background: `linear-gradient(90deg, ${project.color}00 0%, ${project.color}66 30%, ${project.color}66 70%, ${project.color}00 100%)`,
+                background: `linear-gradient(90deg, ${moduleColor}00 0%, ${moduleColor}55 30%, ${moduleColor}55 70%, ${moduleColor}00 100%)`,
             }} />
         </motion.div>
     );
@@ -278,8 +288,8 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
 
 const Projects = ({ isDark }) => {
     const [expandedId, setExpandedId] = useState(null);
-    const textColor = isDark ? '#ced0ce' : '#1A1A2E';
-    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(26,26,46,0.5)';
+    const textColor = isDark ? '#ced0ce' : '#1C2226';
+    const dimColor = isDark ? 'rgba(156,160,156,0.9)' : 'rgba(28,34,38,0.52)';
 
     return (
         <section id="projects" className="section-base" data-debug="projects-section">

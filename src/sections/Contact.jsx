@@ -72,21 +72,21 @@ const Contact = ({ isDark }) => {
 
     // ── Palette ────────────────────────────────────────────────────────────────
     const textColor        = isDark ? '#ffffff'                     : '#1C2226';
-    const dimColor         = isDark ? 'rgba(206,208,206,0.55)'      : 'rgba(104,112,120,0.65)';
+    const dimColor         = isDark ? 'rgba(206,208,206,0.55)'      : 'rgba(28,34,38,0.52)';
     const accentColor      = isDark ? '#ced0ce'                     : '#C07838';
     const accentGlow       = isDark ? 'rgba(206,208,206,0.35)'      : 'rgba(192,120,56,0.35)';
-    const accentHover      = isDark ? '#ffffff'                     : '#1C2226';
-    const borderColor      = isDark ? 'rgba(107,113,107,0.65)'      : 'rgba(104,112,120,0.5)';
+    const accentHover      = isDark ? '#ffffff'                     : '#A0622C';
+    const borderColor      = isDark ? 'rgba(107,113,107,0.65)'      : 'rgba(104,112,120,0.4)';
     const borderHover      = isDark ? 'rgba(206,208,206,0.55)'      : 'rgba(192,120,56,0.6)';
-    const cardBg           = isDark ? 'rgba(156,160,156,0.04)'      : 'rgba(54,66,74,0.08)';
-    const cardBgHover      = isDark ? 'rgba(206,208,206,0.07)'      : 'rgba(54,66,74,0.12)';
-    const sectionBg        = isDark ? 'rgba(57,65,57,1)'            : '#C9CFC8';
-    const scopeBg          = isDark ? '#000810'                     : '#36424A';
-    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'       : 'rgba(192,120,56,0.5)';
-    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'      : 'rgba(192,120,56,0.08)';
+    const cardBg           = isDark ? 'rgba(156,160,156,0.04)'      : 'rgba(255,255,255,0.35)';
+    const cardBgHover      = isDark ? 'rgba(206,208,206,0.07)'      : 'rgba(255,255,255,0.55)';
+    const sectionBg        = isDark ? 'rgba(57,65,57,1)'            : 'transparent';
+    const scopeBg          = isDark ? '#000810'                     : '#2E3A42';
+    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'       : 'rgba(192,120,56,0.55)';
+    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'      : 'rgba(192,120,56,0.09)';
     const scopeLabelColor  = isDark ? 'rgba(107,113,107,0.7)'       : 'rgba(192,120,56,0.7)';
     const waveColor        = isDark ? '#9ca09c'                     : '#C07838';
-    const btnColor         = isDark ? '#394139'                     : '#C9CFC8';
+    const btnColor         = isDark ? '#394139'                     : '#E8EAE7';
     const errorColor       = '#FF5A3C';
     const ecgColor         = isDark ? '#4ade80'                     : '#C07838';
 
@@ -348,7 +348,7 @@ const Contact = ({ isDark }) => {
                             marginBottom:  '16px',
                             height:        '100px',
                             position:      'relative',
-                            background:    status === 'sent' ? (isDark ? '#000f04' : '#f0faf2') : scopeBg,
+                            background:    status === 'sent' ? (isDark ? '#000f04' : '#2a3228') : scopeBg,
                             border:        `2px solid ${status === 'sent' ? ecgColor + '88' : status === 'error' ? errorColor + '88' : scopeBorderColor}`,
                             borderRadius:  '8px',
                             overflow:      'hidden',

@@ -36,14 +36,14 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
     // ── Palette ────────────────────────────────────────────────────────────────
     // Mirrors the earthy industrial palette for light mode cohesive site-wide.
     const textColor         = isDark ? '#ffffff'                    : '#1C2226';
-    const dimColor          = isDark ? 'rgba(206,208,206,0.55)'     : 'rgba(104,112,120,0.65)';
+    const dimColor          = isDark ? 'rgba(206,208,206,0.55)'     : 'rgba(28,34,38,0.52)';
     const accentColor       = isDark ? '#ced0ce'                    : '#C07838';
     const accentGlow        = isDark ? 'rgba(206,208,206,0.35)'     : 'rgba(192,120,56,0.35)';
-    const accentHover       = isDark ? '#ffffff'                    : '#1C2226';
-    const tagBorder         = isDark ? 'rgba(206,208,206,0.6)'      : 'rgba(104,112,120,0.5)';
-    const tagBg             = isDark ? 'rgba(206,208,206,0.06)'     : 'rgba(104,112,120,0.08)';
-    const statusBg          = isDark ? 'rgba(206,208,206,0.03)'     : 'rgba(104,112,120,0.05)';
-    const statusBorder      = isDark ? 'rgba(206,208,206,0.15)'     : 'rgba(104,112,120,0.2)';
+    const accentHover       = isDark ? '#ffffff'                    : '#A0622C';
+    const tagBorder         = isDark ? 'rgba(206,208,206,0.6)'      : 'rgba(104,112,120,0.4)';
+    const tagBg             = isDark ? 'rgba(206,208,206,0.06)'     : 'rgba(255,255,255,0.35)';
+    const statusBg          = isDark ? 'rgba(206,208,206,0.03)'     : 'rgba(255,255,255,0.25)';
+    const statusBorder      = isDark ? 'rgba(206,208,206,0.15)'     : 'rgba(104,112,120,0.25)';
     const gridOpacity       = isDark ? 0.25                         : 0.12;
     const beamColor         = isDark ? 'rgba(0,255,136,0.25)'       : 'rgba(192,120,56,0.2)';
     const beamColorFaint    = isDark ? 'rgba(0,255,136,0.05)'       : 'rgba(192,120,56,0.03)';
@@ -51,10 +51,10 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
     const progressFill      = isDark
         ? 'linear-gradient(90deg,#4BD8A0,#6FD4FF)'
         : 'linear-gradient(90deg,#C07838,#D4A843)';
-    const terminalBg        = isDark ? '#050808'                    : '#C9CFC8';
-    const terminalBorder    = isDark ? 'rgba(75,216,160,0.3)'       : 'rgba(104,112,120,0.35)';
-    const terminalLabel     = isDark ? 'rgba(75,216,160,0.5)'       : 'rgba(104,112,120,0.6)';
-    const btnTextColor      = isDark ? '#394139'                    : '#C9CFC8';
+    const terminalBg        = isDark ? '#050808'                    : '#E8EAE7';
+    const terminalBorder    = isDark ? 'rgba(75,216,160,0.3)'       : 'rgba(192,120,56,0.35)';
+    const terminalLabel     = isDark ? 'rgba(75,216,160,0.5)'       : 'rgba(192,120,56,0.6)';
+    const btnTextColor      = isDark ? '#394139'                    : '#E8EAE7';
 
     // Boot line colours
     const lineColors = {
