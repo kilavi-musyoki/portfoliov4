@@ -184,10 +184,10 @@ const Hero = ({ isDark, glitch = false }) => {
                         transition={{ duration: 0.8 }}
                         style={{
                             width: '100%',
-                            padding: '0 2rem',
+                            padding: isMobile ? '0 1.25rem' : '0 2rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '3rem',
+                            gap: isMobile ? '1.5rem' : '3rem',
                             maxWidth: '1400px',
                             margin: '0 auto',
                             flexWrap: 'wrap',
@@ -256,7 +256,7 @@ const Hero = ({ isDark, glitch = false }) => {
                             </div>
 
                             {/* Stats strip */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '1rem 0.5rem' : '0.5rem', marginBottom: '2rem' }}>
                                 {[
                                     { val: '1000+', label: 'Hours Building'   },
                                     { val: '10+',   label: 'Projects'         },
@@ -388,32 +388,7 @@ const Hero = ({ isDark, glitch = false }) => {
                 )}
             </AnimatePresence>
 
-            {/* ── Scroll indicator ── */}
-            {bootDone && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5, duration: 0.5 }}
-                    style={{
-                        position: 'absolute', bottom: '2rem', left: '50%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                    }}
-                >
-                    <span style={{
-                        fontFamily: 'JetBrains Mono, monospace', fontSize: '0.6rem',
-                        color: isDark ? 'rgba(206,208,206,0.4)' : 'rgba(28,34,38,0.38)',
-                        letterSpacing: '0.1em',
-                    }}>
-                        SCROLL TO EXPLORE
-                    </span>
-                    <motion.div
-                        animate={{ y: [0, 6, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{ color: isDark ? '#ced0ce' : '#C07838', fontSize: '1rem' }}
-                    >↓</motion.div>
-                </motion.div>
-            )}
+
         </section>
     );
 };
