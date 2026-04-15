@@ -17,11 +17,25 @@ const useWindowWidth = () => {
 
 // ── Oscilloscope waveform generator ───────────────────────────────────────────
 const generateWavePath = (text, isTyping, width = 480, height = 100) => {
-    const amplitude = Math.min(8 + text.length * 0.4, 32);
-    const freq = isTyping ? 0.06 : 0.03;
+    const time = Date.now();
+    const baseAmp = 4 + (text.length * 0.3);
+    const targetAmp = isTyping ? baseAmp + 15 : baseAmp;
+    
+    const amplitude = Math.min(targetAmp, 42); 
+    const freq = isTyping ? 0.08 : 0.02;
+    const distortion = isTyping ? 5 : 0.5;
+
     const points = [];
-    for (let x = 0; x <= width; x += 4) {
-        const y = height / 2 + Math.sin(x * freq + Date.now() * 0.004) * amplitude * (1 + 0.2 * Math.sin(x * 0.02));
+    for (let x = 0; x <= width + 4; x += 4) {
+        let wave = Math.sin(x * freq + time * 0.005) * amplitude;
+        // Secondary harmonic
+        wave *= (1 + 0.3 * Math.sin(x * 0.015 - time * 0.002));
+        // High frequency noise
+        const noise = Math.sin(x * 0.45 + time * 0.01) * distortion;
+        // Static spikes
+        const spike = isTyping && Math.random() > 0.95 ? (Math.random() - 0.5) * 16 : 0;
+        
+        const y = height / 2 + wave + noise + spike;
         points.push(`${x},${y}`);
     }
     return `M${points.join(' L')}`;
@@ -105,7 +119,7 @@ const Contact = ({ isDark }) => {
         return () => cancelAnimationFrame(rafRef.current);
     }, [formData, isTyping, status]);
 
-    // ── ECG success animation: 3 sweeps then hold flatline ───────────────────
+    // ── ECG success animation: 2 sweeps then hold flatline ───────────────────
     useEffect(() => {
         if (status !== 'sent') {
             setEcgPhase(0);
@@ -113,8 +127,8 @@ const Contact = ({ isDark }) => {
         }
         let progress = 0;
         let phase    = 0;
-        const totalSweeps = 3;
-        const speed = 0.008; // progress per frame
+        const totalSweeps = 2;
+        const speed = 0.018; // progress per frame
 
         const animate = () => {
             progress += speed;
@@ -201,7 +215,7 @@ const Contact = ({ isDark }) => {
     };
 
     // ── Scope labels ───────────────────────────────────────────────────────────
-    const isComplete = status === 'sent' && ecgPhase >= 3;
+    const isComplete = status === 'sent' && ecgPhase >= 2;
     const scopeStatusLabel =
         isComplete           ? '✓ SIGNAL LOCKED'
         : status === 'sent'    ? 'TRANSMITTING PULSE...'
