@@ -8,6 +8,7 @@ import ThemeToggle from './components/ThemeToggle.jsx';
 import DebugOverlay from './components/DebugOverlay.jsx';
 import IdleCharacter from './components/IdleCharacter.jsx';
 import { initScroll } from './scrollSetup.js';
+import { getTheme } from './theme.js';
 
 // Spark particle effect on click
 const createSparks = (x, y, isDark) => {
@@ -59,16 +60,12 @@ function App() {
   const fpsRef      = useRef({ last: performance.now(), frames: 0 });
 
   // ── Palette ──────────────────────────────────────────────────────────────
-  const textColor        = isDark ? '#ced0ce'                        : '#1C2226';
-  const dimColor         = isDark ? 'rgba(206,208,206,0.55)'         : 'rgba(28,34,38,0.52)';
-  const accentColor      = isDark ? '#ced0ce'                        : '#C07838';
-  const accentGlow       = isDark ? 'rgba(206,208,206,0.6)'          : 'rgba(192,120,56,0.45)';
-  const statusBorder     = isDark ? 'rgba(107,113,107,0.5)'          : 'rgba(104,112,120,0.4)';
-  const footerBorder     = isDark ? 'rgba(107,113,107,0.4)'          : 'rgba(104,112,120,0.3)';
-  const footerBg         = isDark ? 'rgba(41,47,41,0.9)'             : 'rgba(232,234,231,0.9)';
-  const footerSub        = isDark ? 'rgba(206,208,206,0.45)'         : 'rgba(28,34,38,0.4)';
-  const debugBarColor    = isDark ? '#4BD8A0'                        : '#C07838';
-  const debugBarGlow     = isDark ? '#4BD8A0'                        : '#C07838';
+  const t             = getTheme(isDark);
+  const { dimColor, accentColor, accentGlow, footerBg, footerBorder, footerSub } = t;
+  const textColor     = t.textColor;
+  const statusBorder  = t.borderColor;
+  const debugBarColor = t.debugBar;
+  // debugBarColor is used for both background and glow (they were always identical)
 
   // ── Detect system / saved theme ──────────────────────────────────────────
   useEffect(() => {
@@ -214,16 +211,7 @@ function App() {
             <a
               key={link.href}
               href={link.href}
-              style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.65rem',
-                color: dimColor,
-                textDecoration: 'none',
-                letterSpacing: '0.08em',
-                transition: 'color 0.2s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = accentColor; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = dimColor;    }}
+              className="nav-link"
             >
               {link.label}
             </a>
@@ -314,7 +302,7 @@ function App() {
           height: '2px',
           background: debugBarColor,
           zIndex: 99998,
-          boxShadow: `0 0 10px ${debugBarGlow}`,
+          boxShadow: `0 0 10px ${debugBarColor}`,
         }} />
       )}
 

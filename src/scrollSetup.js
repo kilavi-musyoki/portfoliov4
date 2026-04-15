@@ -7,17 +7,17 @@ gsap.registerPlugin(ScrollTrigger);
  * Initialize scroll-driven deconstruction of the PCB board.
  *
  * Maps normalized scroll progress (0 → 1) of the whole page to
- * the conceptual hardware layers:
+ * conceptual hardware layers (actual thresholds match the LAYERS array below):
  *
- * 0.00–0.14 → casing
- * 0.15–0.29 → thermal
- * 0.30–0.44 → pcb
- * 0.45–0.59 → traces
- * 0.60–0.74 → components
- * 0.75–0.89 → die
- * 0.90–1.00 → quantum
+ * 0.00–0.02 → casing
+ * 0.02–0.03 → thermal
+ * 0.03–0.04 → pcb
+ * 0.04–0.07 → traces
+ * 0.07–0.12 → components
+ * 0.12–0.15 → die      (Board.jsx has no renderer — falls back silently to default)
+ * 0.15–1.00 → quantum  (Board.jsx has no renderer — falls back silently to default)
  *
- * Crossing a region boundary triggers a brief glitch flash.
+ * Crossing a region boundary triggers a brief 300ms glitch flash.
  *
  * @param {(layer: string) => void} setLayer
  * @param {(active: boolean) => void} setGlitch

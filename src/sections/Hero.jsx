@@ -1,141 +1,115 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import PCBBoard from '../components/Board.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import DeviceCanvas from '../components/DeviceCanvas.jsx';
+import LeverControl from '../components/LeverControl.jsx';
+import { getTheme } from '../theme.js';
 
+// ── Boot sequence ─────────────────────────────────────────────────────────────
 const BOOT_LINES = [
-    { text: 'SILICON SOUL v2.0 — INITIALIZING...', delay: 0 },
-    { text: 'POST CHECK: RAM .................. OK', delay: 300 },
-    { text: 'POST CHECK: GPU .................. OK', delay: 600 },
-    { text: 'POST CHECK: PORTFOLIO.EXE ........ LOADED', delay: 900 },
-    { text: 'POST CHECK: ESP32_CORE ........... ONLINE', delay: 1200 },
-    { text: 'POST CHECK: RF_MODULE ............ CALIBRATED', delay: 1500 },
+    { text: 'SILICON SOUL v2.0 — INITIALIZING...',         delay: 0    },
+    { text: 'POST CHECK: RAM .................. OK',         delay: 300  },
+    { text: 'POST CHECK: GPU .................. OK',         delay: 600  },
+    { text: 'POST CHECK: PORTFOLIO.EXE ........ LOADED',    delay: 900  },
+    { text: 'POST CHECK: ESP32_CORE ........... ONLINE',    delay: 1200 },
+    { text: 'POST CHECK: RF_MODULE ............ CALIBRATED',delay: 1500 },
     { text: 'POST CHECK: EGO_MODULE ........... WARN (within limits)', delay: 1800 },
-    { text: 'MOUNTING INTERFACE ...............', delay: 2100 },
-    { text: 'SIGNAL ACQUIRED. WELCOME, OPERATOR.', delay: 2400 },
+    { text: 'MOUNTING INTERFACE ...............',             delay: 2100 },
+    { text: 'SIGNAL ACQUIRED. WELCOME, OPERATOR.',          delay: 2400 },
 ];
 
-// Per-line colors keyed by index, defined per mode inside component
 const LINE_COLOR_INDEX = [0, 1, 1, 1, 1, 1, 2, 3, 4];
-// 0 = dim, 1 = ok/green, 2 = warn/gold, 3 = muted, 4 = bright
-
 const UPTIME_START = Date.now();
 
-const Hero = ({ isDark, layer = 'components', glitch = false }) => {
-    const [bootDone, setBootDone] = useState(false);
-    const [visibleLines, setVisibleLines] = useState(0);
-    const [progress, setProgress] = useState(0);
-    const [uptime, setUptime] = useState('00:00:00');
-    const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
-    const [ledPos, setLedPos] = useState({ x: 0.5, y: 0.5 });
-    const [inViewport, setInViewport] = useState(true);
-    const boardRef = useRef(null);
-    const ledPosRef = useRef({ x: 0.5, y: 0.5 });
-    const targetPosRef = useRef({ x: 0.5, y: 0.5 });
-    const rafRef = useRef(null);
+// ─────────────────────────────────────────────────────────────────────────────
+const Hero = ({ isDark, glitch = false }) => {
+    // ── State ─────────────────────────────────────────────────────────────────
+    const [bootDone,    setBootDone]    = useState(false);
+    const [visibleLines,setVisibleLines]= useState(0);
+    const [progress,    setProgress]    = useState(0);
+    const [uptime,      setUptime]      = useState('00:00:00');
+    const mousePosRef                   = useRef({ x: 0.5, y: 0.5 });
+    const [leverValue,  setLeverValue]  = useState(0);
+    const [isMobile,    setIsMobile]    = useState(() => window.innerWidth < 640);
 
-    // ── Palette ────────────────────────────────────────────────────────────────
-    // Mirrors the earthy industrial palette for light mode cohesive site-wide.
-    const textColor         = isDark ? '#ffffff'                    : '#1C2226';
-    const dimColor          = isDark ? 'rgba(206,208,206,0.55)'     : 'rgba(28,34,38,0.52)';
-    const accentColor       = isDark ? '#ced0ce'                    : '#C07838';
-    const accentGlow        = isDark ? 'rgba(206,208,206,0.35)'     : 'rgba(192,120,56,0.35)';
-    const accentHover       = isDark ? '#ffffff'                    : '#A0622C';
-    const tagBorder         = isDark ? 'rgba(206,208,206,0.6)'      : 'rgba(104,112,120,0.4)';
-    const tagBg             = isDark ? 'rgba(206,208,206,0.06)'     : 'rgba(255,255,255,0.35)';
-    const statusBg          = isDark ? 'rgba(206,208,206,0.03)'     : 'rgba(255,255,255,0.25)';
-    const statusBorder      = isDark ? 'rgba(206,208,206,0.15)'     : 'rgba(104,112,120,0.25)';
-    const gridOpacity       = isDark ? 0.25                         : 0.12;
-    const beamColor         = isDark ? 'rgba(0,255,136,0.25)'       : 'rgba(192,120,56,0.2)';
-    const beamColorFaint    = isDark ? 'rgba(0,255,136,0.05)'       : 'rgba(192,120,56,0.03)';
-    const progressTrack     = isDark ? 'rgba(75,216,160,0.15)'      : 'rgba(192,120,56,0.15)';
-    const progressFill      = isDark
+    // ── Responsive detection ──────────────────────────────────────────────────
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handler, { passive: true });
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+
+    // ── Palette ───────────────────────────────────────────────────────────────
+    const t = getTheme(isDark);
+    const { dimColor, accentColor, accentGlow, accentHover, btnTextColor } = t;
+    const textColor    = t.textBright;   // #fff dark / #1C2226 light — hero h1
+    const statusOnline = t.statusGreen;
+    const statusTemp   = t.statusRed;
+
+    // Component-specific tokens (boot terminal + hero progress bar)
+    const tagBorder      = isDark ? 'rgba(206,208,206,0.6)'     : 'rgba(104,112,120,0.4)';
+    const tagBg          = isDark ? 'rgba(206,208,206,0.06)'    : 'rgba(255,255,255,0.35)';
+    const statusBg       = isDark ? 'rgba(206,208,206,0.03)'    : 'rgba(255,255,255,0.25)';
+    const statusBorder   = isDark ? 'rgba(206,208,206,0.15)'    : 'rgba(104,112,120,0.25)';
+    const progressTrack  = isDark ? 'rgba(75,216,160,0.15)'     : 'rgba(192,120,56,0.15)';
+    const progressFill   = isDark
         ? 'linear-gradient(90deg,#4BD8A0,#6FD4FF)'
         : 'linear-gradient(90deg,#C07838,#D4A843)';
-    const terminalBg        = isDark ? '#050808'                    : '#E8EAE7';
-    const terminalBorder    = isDark ? 'rgba(75,216,160,0.3)'       : 'rgba(192,120,56,0.35)';
-    const terminalLabel     = isDark ? 'rgba(75,216,160,0.5)'       : 'rgba(192,120,56,0.6)';
-    const btnTextColor      = isDark ? '#394139'                    : '#E8EAE7';
+    const terminalBg     = isDark ? '#050808'                   : '#E8EAE7';
+    const terminalBorder = isDark ? 'rgba(75,216,160,0.3)'      : 'rgba(192,120,56,0.35)';
+    const terminalLabel  = isDark ? 'rgba(75,216,160,0.5)'      : 'rgba(192,120,56,0.6)';
 
-    // Boot line colours
     const lineColors = {
-        0: dimColor,                                            // dim
-        1: isDark ? '#b0ffcc'    : '#C07838',                 // ok
-        2: isDark ? '#D4A843'    : '#C07838',                 // warn
-        3: isDark ? '#9ca09c'    : 'rgba(104,112,120,0.6)',   // muted
-        4: isDark ? '#ffffff'    : '#1C2226',                 // bright
+        0: dimColor,
+        1: isDark ? '#b0ffcc' : accentColor,
+        2: isDark ? '#D4A843' : accentColor,
+        3: isDark ? '#9ca09c' : 'rgba(104,112,120,0.6)',
+        4: textColor,
     };
 
-    // Status bar specific colours
-    const statusOnline  = isDark ? '#4BD8A0'  : '#3aa87e';
-    const statusTemp    = isDark ? '#FF5A3C'  : '#e05c3a';
-
-    // ── Boot sequence ──────────────────────────────────────────────────────────
+    // ── Boot sequence ─────────────────────────────────────────────────────────
     useEffect(() => {
-        BOOT_LINES.forEach((line, i) => {
+        const ids = BOOT_LINES.map((line, i) =>
             setTimeout(() => {
                 setVisibleLines(i + 1);
                 setProgress(Math.round(((i + 1) / BOOT_LINES.length) * 100));
-            }, line.delay);
-        });
-        setTimeout(() => setBootDone(true), 2800);
+            }, line.delay)
+        );
+        const doneId = setTimeout(() => setBootDone(true), 2800);
+        return () => {
+            ids.forEach(clearTimeout);
+            clearTimeout(doneId);
+        };
     }, []);
 
-    // ── Uptime counter ─────────────────────────────────────────────────────────
+    // ── Uptime counter ────────────────────────────────────────────────────────
     useEffect(() => {
         const tick = () => {
-            const elapsed = Math.floor((Date.now() - UPTIME_START) / 1000);
-            const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-            const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-            const s = String(elapsed % 60).padStart(2, '0');
+            const e = Math.floor((Date.now() - UPTIME_START) / 1000);
+            const h = String(Math.floor(e / 3600)).padStart(2, '0');
+            const m = String(Math.floor((e % 3600) / 60)).padStart(2, '0');
+            const s = String(e % 60).padStart(2, '0');
             setUptime(`${h}:${m}:${s}`);
         };
-        const interval = setInterval(tick, 1000);
+        const id = setInterval(tick, 1000);
         tick();
-        return () => clearInterval(interval);
+        return () => clearInterval(id);
     }, []);
 
-    // ── Mouse tracking ─────────────────────────────────────────────────────────
+    // ── Mouse tracking ────────────────────────────────────────────────────────
     const handleMouseMove = useCallback((e) => {
-        const nx = e.clientX / window.innerWidth;
-        const ny = e.clientY / window.innerHeight;
-        setMousePos({ x: nx, y: ny });
-        targetPosRef.current = { x: nx, y: ny };
-    }, []);
-    const handleMouseLeave = useCallback(() => setInViewport(false), []);
-    const handleMouseEnter = useCallback(() => setInViewport(true), []);
-
-    // ── LED lerp ───────────────────────────────────────────────────────────────
-    useEffect(() => {
-        const lerp = (a, b, t) => a + (b - a) * t;
-        const animate = () => {
-            ledPosRef.current = {
-                x: lerp(ledPosRef.current.x, targetPosRef.current.x, 0.08),
-                y: lerp(ledPosRef.current.y, targetPosRef.current.y, 0.08),
-            };
-            setLedPos({ ...ledPosRef.current });
-            rafRef.current = requestAnimationFrame(animate);
+        mousePosRef.current = {
+            x: e.clientX / window.innerWidth,
+            y: e.clientY / window.innerHeight,
         };
-        rafRef.current = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(rafRef.current);
     }, []);
-
-    // ── Derived values ─────────────────────────────────────────────────────────
-    const tiltX = (mousePos.y - 0.5) * -24;
-    const tiltY = (mousePos.x - 0.5) * 24;
-    const beamX = (mousePos.x - 0.5) * 40;
-    const beamY = (mousePos.y - 0.5) * 20;
 
     return (
         <section
             id="hero"
             style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center' }}
             onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onMouseEnter={handleMouseEnter}
             data-debug="hero-section"
         >
-            {/* Grid removed — PCB board provides visual texture */}
-
             {/* ── Bootloader terminal ── */}
             <AnimatePresence>
                 {!bootDone && (
@@ -153,7 +127,7 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                         }}
                     >
                         <div style={{ width: '90%', maxWidth: '600px' }}>
-                            {/* Terminal window chrome */}
+                            {/* Terminal chrome */}
                             <div style={{
                                 borderBottom: `1px solid ${terminalBorder}`,
                                 paddingBottom: '8px', marginBottom: '16px',
@@ -162,58 +136,35 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: isDark ? '#FF5A3C' : '#e05c3a' }} />
                                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#D4A843' }} />
                                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: isDark ? '#4BD8A0' : '#50b1ce' }} />
-                                <span style={{
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                    fontSize: '0.7rem',
-                                    color: terminalLabel,
-                                    marginLeft: '8px',
-                                }}>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.7rem', color: terminalLabel, marginLeft: '8px' }}>
                                     SILICON_SOUL_BIOS v2.0
                                 </span>
                             </div>
-
                             {/* Boot lines */}
                             <div style={{ minHeight: '200px' }}>
                                 {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
-                                    <div
-                                        key={i}
-                                        className="boot-line"
-                                        style={{
-                                            fontFamily: 'JetBrains Mono, monospace',
-                                            fontSize: '0.8rem',
-                                            color: lineColors[LINE_COLOR_INDEX[i]],
-                                            marginBottom: '6px',
-                                            animationDelay: '0ms',
-                                            lineHeight: 1.4,
-                                        }}
-                                    >
+                                    <div key={i} className="boot-line" style={{
+                                        fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem',
+                                        color: lineColors[LINE_COLOR_INDEX[i]],
+                                        marginBottom: '6px', lineHeight: 1.4,
+                                    }}>
                                         {line.text}
                                         {i === visibleLines - 1 && (
-                                            <span style={{
-                                                opacity: Math.sin(Date.now() / 300) > 0 ? 1 : 0,
-                                                transition: 'opacity 0.1s',
-                                            }}>▋</span>
+                                            <span style={{ opacity: Math.sin(Date.now() / 300) > 0 ? 1 : 0, transition: 'opacity 0.1s' }}>▋</span>
                                         )}
                                     </div>
                                 ))}
                             </div>
-
                             {/* Progress bar */}
                             <div style={{ marginTop: '24px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', color: terminalLabel }}>
-                                        LOADING INTERFACE
-                                    </span>
-                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', color: accentColor }}>
-                                        {progress}%
-                                    </span>
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', color: terminalLabel }}>LOADING INTERFACE</span>
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', color: accentColor }}>{progress}%</span>
                                 </div>
                                 <div style={{ height: '2px', background: progressTrack, borderRadius: '1px' }}>
                                     <div style={{
-                                        height: '100%',
-                                        width: `${progress}%`,
-                                        background: progressFill,
-                                        borderRadius: '1px',
+                                        height: '100%', width: `${progress}%`,
+                                        background: progressFill, borderRadius: '1px',
                                         transition: 'width 0.3s ease',
                                         boxShadow: `0 0 8px ${accentGlow}`,
                                     }} />
@@ -236,49 +187,38 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                             padding: '0 2rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4rem',
+                            gap: '3rem',
                             maxWidth: '1400px',
                             margin: '0 auto',
                             flexWrap: 'wrap',
                         }}
                     >
-                        {/* Left: text — 45% */}
+                        {/* ───────────────── LEFT: text ───────────────── */}
                         <motion.div
                             initial={{ x: -40, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ duration: 0.7, delay: 0.2 }}
-                            style={{ flex: '0 0 45%', minWidth: '300px' }}
+                            style={{ flex: '0 0 45%', minWidth: '280px' }}
                         >
                             {/* Greeting */}
-                            <div style={{
-                                fontFamily: 'JetBrains Mono, monospace',
-                                fontSize: '1rem',
-                                color: accentColor,
-                                marginBottom: '0.5rem',
-                            }}>
+                            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1rem', color: accentColor, marginBottom: '0.5rem' }}>
                                 herro 😅👋
                             </div>
 
                             {/* Name */}
                             <h1 style={{
-                                fontFamily: 'Syne, sans-serif',
-                                fontWeight: 800,
+                                fontFamily: 'Syne, sans-serif', fontWeight: 800,
                                 fontSize: 'clamp(2.5rem, 5vw, 5.5rem)',
-                                color: textColor,
-                                lineHeight: 1.0,
-                                marginBottom: '0.75rem',
-                                letterSpacing: '-0.02em',
+                                color: textColor, lineHeight: 1.0,
+                                marginBottom: '0.75rem', letterSpacing: '-0.02em',
                             }}>
                                 Kilavi<br />Musyoki
                             </h1>
 
                             {/* Role */}
                             <div style={{
-                                fontFamily: 'JetBrains Mono, monospace',
-                                fontSize: '0.85rem',
-                                color: dimColor,
-                                marginBottom: '1rem',
-                                letterSpacing: '0.02em',
+                                fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem',
+                                color: dimColor, marginBottom: '1rem', letterSpacing: '0.02em',
                             }}>
                                 Telecommunications &amp; Information Engineering Student
                             </div>
@@ -287,13 +227,10 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
                                 {['Embedded Systems', 'RF Engineering', 'IoT', 'Networking', 'PCB Design'].map((tag) => (
                                     <span key={tag} style={{
-                                        fontFamily: 'JetBrains Mono, monospace',
-                                        fontSize: '0.65rem',
+                                        fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem',
                                         padding: '3px 10px',
                                         border: `1px solid ${tagBorder}`,
-                                        borderRadius: '2px',
-                                        color: accentColor,
-                                        background: tagBg,
+                                        borderRadius: '2px', color: accentColor, background: tagBg,
                                         letterSpacing: '0.05em',
                                     }}>
                                         {tag}
@@ -301,18 +238,13 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                                 ))}
                             </div>
 
-                            {/* System status panel */}
+                            {/* System status */}
                             <div style={{
-                                fontFamily: 'JetBrains Mono, monospace',
-                                fontSize: '0.65rem',
+                                fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem',
                                 padding: '10px 14px',
                                 border: `1px solid ${statusBorder}`,
-                                borderRadius: '3px',
-                                background: statusBg,
-                                color: dimColor,
-                                marginBottom: '1.5rem',
-                                letterSpacing: '0.04em',
-                                lineHeight: 1.6,
+                                borderRadius: '3px', background: statusBg, color: dimColor,
+                                marginBottom: '1.5rem', letterSpacing: '0.04em', lineHeight: 1.6,
                             }}>
                                 <span style={{ color: statusOnline }}>SYSTEM: ONLINE</span>
                                 {' | '}
@@ -324,31 +256,27 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                             </div>
 
                             {/* Stats strip */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '2rem' }}>
                                 {[
-                                    { val: '1000+', label: 'Hours Building' },
-                                    { val: '10+',    label: 'Projects'      },
-                                    { val: '4+', label: 'Systems Designed' },
-                                    { val: 'Daily', label: 'Learning Rate' },
-                                    { val: '∞',    label: 'Problems Left' },                                  
+                                    { val: '1000+', label: 'Hours Building'   },
+                                    { val: '10+',   label: 'Projects'         },
+                                    { val: '4+',    label: 'Systems Designed' },
+                                    { val: 'Daily', label: 'Learning Rate'    },
+                                    { val: '∞',     label: 'Problems Left'    },
                                 ].map((stat) => (
-                                    <div key={stat.label} style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                                    <div key={stat.label} style={{ textAlign: 'center', padding: '0.4rem 0' }}>
                                         <div style={{
-                                            fontFamily: 'Syne, sans-serif',
-                                            fontWeight: 700,
-                                            fontSize: 'clamp(1.4rem, 5vw, 1.8rem)',
-                                            color: accentColor,
-                                            lineHeight: 1,
+                                            fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                                            fontSize: 'clamp(1.1rem, 3.5vw, 1.6rem)',
+                                            color: accentColor, lineHeight: 1,
                                         }}>
                                             {stat.val}
                                         </div>
                                         <div style={{
                                             fontFamily: 'JetBrains Mono, monospace',
-                                            fontSize: 'clamp(0.55rem, 2.5vw, 0.65rem)',
-                                            color: dimColor,
-                                            marginTop: '4px',
-                                            letterSpacing: '0.05em',
-                                            textTransform: 'uppercase',
+                                            fontSize: 'clamp(0.45rem, 2vw, 0.6rem)',
+                                            color: dimColor, marginTop: '3px',
+                                            letterSpacing: '0.04em', textTransform: 'uppercase',
                                         }}>
                                             {stat.label}
                                         </div>
@@ -356,21 +284,15 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                                 ))}
                             </div>
 
-                            {/* CTA button */}
+                            {/* CTA */}
                             <a
                                 href="#about"
                                 style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                    fontSize: '0.85rem',
+                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                    fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem',
                                     padding: '12px 28px',
-                                    background: accentColor,
-                                    color: btnTextColor,
-                                    borderRadius: '2px',
-                                    textDecoration: 'none',
-                                    fontWeight: 700,
+                                    background: accentColor, color: btnTextColor,
+                                    borderRadius: '2px', textDecoration: 'none', fontWeight: 700,
                                     letterSpacing: '0.05em',
                                     transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
                                     boxShadow: `0 0 20px ${accentGlow}`,
@@ -390,56 +312,77 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                             </a>
                         </motion.div>
 
-                        {/* Right: board — 55% */}
+                        {/* ───────────────── RIGHT: device + lever ───────────────── */}
                         <motion.div
                             initial={{ x: 60, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.3 }}
-                            ref={boardRef}
-                            className={glitch ? 'glitch-flash' : ''}
                             style={{
                                 flex: '1 1 300px',
-                                maxWidth: '520px',
+                                maxWidth: '580px',
                                 position: 'relative',
-                                animation: 'levitate 3.5s ease-in-out infinite',
-                                transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
-                                transition: 'transform 0.05s linear',
-                                willChange: 'transform',
+                                // Extra right padding so the lever doesn't clip
+                                paddingRight: isMobile ? '0' : '70px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '1rem',
                             }}
                         >
-                            {/* Tractor beam */}
-                            <div style={{
-                                position: 'absolute',
-                                bottom: `${-60 + beamY}px`,
-                                left: `calc(50% + ${beamX}px)`,
-                                transform: 'translateX(-50%)',
-                                width: '200px',
-                                height: '90px',
-                                background: `radial-gradient(ellipse at top, ${inViewport ? beamColor : beamColorFaint} 0%, transparent 70%)`,
-                                pointerEvents: 'none',
-                                transition: 'opacity 0.5s',
-                            }} />
+                            {/* Device canvas */}
+                            <DeviceCanvas
+                                leverValue={leverValue}
+                                isDark={isDark}
+                                mousePosRef={mousePosRef}
+                                glitch={glitch}
+                            />
 
-                            {/* Board */}
-                            <PCBBoard layer={layer} className="" isDark={isDark} />
+                            {/* ── Lever: SURPRISE POSITION ──────────────────────
+                                Mounted on the RIGHT EDGE of the device chassis.
+                                It aligns with & overlaps the fader-slot channel
+                                drawn in ProductShell's right panel SVG, making
+                                it look physically bolted onto the device.      */}
+                            {!isMobile && (
+                                <div style={{
+                                    position: 'absolute',
+                                    right: '0',
+                                    top:   '5%',
+                                    bottom:'5%',
+                                    width: '62px',
+                                    zIndex: 20,
+                                    display: 'flex',
+                                    alignItems: 'stretch',
+                                }}>
+                                    <LeverControl
+                                        leverValue={leverValue}
+                                        onChange={setLeverValue}
+                                        isDark={isDark}
+                                    />
+                                </div>
+                            )}
 
-                            {/* LED eye overlay */}
+                            {/* Mobile lever below the device */}
+                            {isMobile && (
+                                <div style={{ width: '100%', padding: '0 0.25rem' }}>
+                                    <LeverControl
+                                        leverValue={leverValue}
+                                        onChange={setLeverValue}
+                                        isDark={isDark}
+                                        isMobile
+                                    />
+                                </div>
+                            )}
+
+                            {/* Hint text */}
                             <div style={{
-                                position: 'absolute',
-                                top: `${28 + ledPos.y * 4}%`,
-                                right: `${12 - ledPos.x * 4}%`,
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '50%',
-                                background: '#FF5A3C',
-                                boxShadow: inViewport
-                                    ? '0 0 8px 2px #FF5A3C, 0 0 20px #FF5A3C'
-                                    : '0 0 4px 1px rgba(255,90,60,0.4)',
-                                pointerEvents: 'none',
-                                transition: 'box-shadow 0.3s',
-                                animation: inViewport ? 'none' : 'blink-slow 1.5s ease-in-out infinite',
-                                zIndex: 10,
-                            }} />
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fontSize: '0.52rem',
+                                color: isDark ? 'rgba(206,208,206,0.28)' : 'rgba(28,34,38,0.28)',
+                                textAlign: 'center',
+                                letterSpacing: '0.08em',
+                                marginTop: isMobile ? '0.25rem' : '-0.5rem',
+                            }}>
+                                {isMobile ? '← DRAG SLIDER TO DECONSTRUCT →' : '↑ DRAG LEVER TO DECONSTRUCT ↓'}
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
@@ -452,28 +395,22 @@ const Hero = ({ isDark, layer = 'components', glitch = false }) => {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.5, duration: 0.5 }}
                     style={{
-                        position: 'absolute',
-                        bottom: '2rem',
-                        left: '50%',
+                        position: 'absolute', bottom: '2rem', left: '50%',
                         transform: 'translateX(-50%)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '4px',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                     }}
                 >
                     <span style={{
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: '0.6rem',
-                        color: dimColor,
+                        fontFamily: 'JetBrains Mono, monospace', fontSize: '0.6rem',
+                        color: isDark ? 'rgba(206,208,206,0.4)' : 'rgba(28,34,38,0.38)',
                         letterSpacing: '0.1em',
                     }}>
-                        SCROLL TO DECONSTRUCT
+                        SCROLL TO EXPLORE
                     </span>
                     <motion.div
                         animate={{ y: [0, 6, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{ color: accentColor, fontSize: '1rem' }}
+                        style={{ color: isDark ? '#ced0ce' : '#C07838', fontSize: '1rem' }}
                     >↓</motion.div>
                 </motion.div>
             )}

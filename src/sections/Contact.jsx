@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getTheme } from '../theme.js';
 
 // ── Responsive hook ────────────────────────────────────────────────────────────
 const useWindowWidth = () => {
@@ -53,14 +54,16 @@ const Contact = ({ isDark }) => {
     const formRef        = useRef(null);
     const rafRef         = useRef(null);
     const typingTimerRef = useRef(null);
+    // DOM refs for SVG path elements — updated directly in RAF loops to avoid
+    // triggering a full React reconcile on every animation frame (~60 fps).
+    const wavePathElRef = useRef(null);
+    const ecgPathElRef  = useRef(null);
+    const ecgGlowElRef  = useRef(null);
 
     const [formData,    setFormData]    = useState({ name: '', email: '', subject: '', message: '' });
     const [status,      setStatus]      = useState('idle'); // idle | sending | sent | error
     const [isTyping,    setIsTyping]    = useState(false);
-    const [wavePath,    setWavePath]    = useState('');
-    const [ecgProgress, setEcgProgress] = useState(0);   // 0→1 for pulse sweep
-    const [ecgPath,     setEcgPath]     = useState('');
-    const [ecgPhase,    setEcgPhase]    = useState(0);   // counts completed sweeps
+    const [ecgPhase,    setEcgPhase]    = useState(0);   // drives isHeart render logic; updated only on phase change
 
     // ── Google Sheets webhook ──────────────────────────────────────────────────
     const webhook = import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK;
@@ -71,24 +74,21 @@ const Contact = ({ isDark }) => {
     const isTablet  = windowWidth < 900;
 
     // ── Palette ────────────────────────────────────────────────────────────────
-    const textColor        = isDark ? '#ffffff'                     : '#1C2226';
-    const dimColor         = isDark ? 'rgba(206,208,206,0.55)'      : 'rgba(28,34,38,0.52)';
-    const accentColor      = isDark ? '#ced0ce'                     : '#C07838';
-    const accentGlow       = isDark ? 'rgba(206,208,206,0.35)'      : 'rgba(192,120,56,0.35)';
-    const accentHover      = isDark ? '#ffffff'                     : '#A0622C';
-    const borderColor      = isDark ? 'rgba(107,113,107,0.65)'      : 'rgba(104,112,120,0.4)';
-    const borderHover      = isDark ? 'rgba(206,208,206,0.55)'      : 'rgba(192,120,56,0.6)';
-    const cardBg           = isDark ? 'rgba(156,160,156,0.04)'      : 'rgba(255,255,255,0.35)';
-    const cardBgHover      = isDark ? 'rgba(206,208,206,0.07)'      : 'rgba(255,255,255,0.55)';
-    const sectionBg        = isDark ? 'rgba(57,65,57,1)'            : 'transparent';
-    const scopeBg          = isDark ? '#000810'                     : '#2E3A42';
-    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'       : 'rgba(192,120,56,0.55)';
-    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'      : 'rgba(192,120,56,0.09)';
-    const scopeLabelColor  = isDark ? 'rgba(107,113,107,0.7)'       : 'rgba(192,120,56,0.7)';
-    const waveColor        = isDark ? '#9ca09c'                     : '#C07838';
-    const btnColor         = isDark ? '#394139'                     : '#E8EAE7';
-    const errorColor       = '#FF5A3C';
-    const ecgColor         = isDark ? '#4ade80'                     : '#C07838';
+    const t = getTheme(isDark);
+    const { dimColor, accentColor, accentGlow, accentHover, cardBg, cardBgHover, borderHover } = t;
+    const textColor   = t.textBright;
+    const borderColor = t.borderStrong;
+    const btnColor    = t.btnTextColor;
+    const errorColor  = t.statusRed;
+
+    // Component-specific tokens (oscilloscope display)
+    const sectionBg        = isDark ? 'rgba(57,65,57,1)'             : 'transparent';
+    const scopeBg          = isDark ? '#000810'                       : '#2E3A42';
+    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'        : 'rgba(192,120,56,0.55)';
+    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'       : 'rgba(192,120,56,0.09)';
+    const scopeLabelColor  = isDark ? 'rgba(107,113,107,0.7)'        : 'rgba(192,120,56,0.7)';
+    const waveColor        = isDark ? '#9ca09c'                      : '#C07838';
+    const ecgColor         = isDark ? '#4ade80'                      : '#C07838';
 
     // ── Idle/typing oscilloscope animation ────────────────────────────────────
     useEffect(() => {
@@ -98,7 +98,7 @@ const Contact = ({ isDark }) => {
         }
         const animateWave = () => {
             const text = formData.name + formData.email + formData.subject + formData.message;
-            setWavePath(generateWavePath(text, isTyping));
+            wavePathElRef.current?.setAttribute('d', generateWavePath(text, isTyping));
             rafRef.current = requestAnimationFrame(animateWave);
         };
         rafRef.current = requestAnimationFrame(animateWave);
@@ -108,7 +108,6 @@ const Contact = ({ isDark }) => {
     // ── ECG success animation: 3 sweeps then hold flatline ───────────────────
     useEffect(() => {
         if (status !== 'sent') {
-            setEcgProgress(0);
             setEcgPhase(0);
             return;
         }
@@ -121,17 +120,19 @@ const Contact = ({ isDark }) => {
             progress += speed;
             if (progress >= 1.15) {
                 progress = 0;
-                phase += 1;
+                phase   += 1;
+                // Call setState only when phase changes (3× total), not every frame.
+                setEcgPhase(phase);
             }
             if (phase >= totalSweeps) {
-                // flatline after 3 pulses
-                setEcgPath(generateEcgPath(2, 480, 100)); // off-screen → flat
-                setEcgPhase(phase);
+                const flat = generateEcgPath(2, 480, 100);
+                ecgPathElRef.current?.setAttribute('d', flat);
+                ecgGlowElRef.current?.setAttribute('d', flat);
                 return;
             }
-            setEcgProgress(progress);
-            setEcgPath(generateEcgPath(progress, 480, 100));
-            setEcgPhase(phase);
+            const d = generateEcgPath(progress, 480, 100);
+            ecgPathElRef.current?.setAttribute('d', d);
+            ecgGlowElRef.current?.setAttribute('d', d);
             rafRef.current = requestAnimationFrame(animate);
         };
 
@@ -140,6 +141,12 @@ const Contact = ({ isDark }) => {
     }, [status]);
 
     // ── Input handler ──────────────────────────────────────────────────────────
+    // ── Reset ────────────────────────────────────────────────────────────────
+    const resetForm = useCallback(() => {
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setStatus('idle');
+    }, []);
+
     const handleInput = useCallback((e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -162,6 +169,8 @@ const Contact = ({ isDark }) => {
     // ── Form submit → Google Sheets ────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
+        // Guard: webhook URL must be configured for the form to work
+        if (!webhook) { setStatus('error'); return; }
         setStatus('sending');
         try {
             logToSheet({
@@ -173,10 +182,6 @@ const Contact = ({ isDark }) => {
                 message:   formData.message,
             });
             setStatus('sent');
-            setTimeout(() => {
-                setStatus('idle');
-                setFormData({ name: '', email: '', subject: '', message: '' });
-            }, 6000);
         } catch (err) {
             console.error('Contact send error:', err);
             setStatus('error');
@@ -196,10 +201,9 @@ const Contact = ({ isDark }) => {
     };
 
     // ── Scope labels ───────────────────────────────────────────────────────────
-    const isFlatline = status === 'sent' && ecgPhase >= 3;
-    const isHeart    = status === 'sent' && ecgPhase >= 3;
+    const isComplete = status === 'sent' && ecgPhase >= 3;
     const scopeStatusLabel =
-        isHeart              ? '❤ MESSAGE DELIVERED'
+        isComplete           ? '✓ SIGNAL LOCKED'
         : status === 'sent'    ? 'TRANSMITTING PULSE...'
         : status === 'sending' ? 'TRANSMITTING...'
         : isTyping             ? 'RECEIVING...'
@@ -390,11 +394,12 @@ const Contact = ({ isDark }) => {
                                     </filter>
                                 </defs>
 
-                                {status === 'sent' && !isHeart ? (
+                                {status === 'sent' && !isComplete ? (
                                     /* ECG pulse phase */
                                     <>
                                         <path
-                                            d={ecgPath}
+                                            ref={ecgPathElRef}
+                                            d=""
                                             stroke={ecgColor}
                                             strokeWidth="2"
                                             fill="none"
@@ -402,35 +407,48 @@ const Contact = ({ isDark }) => {
                                             filter="url(#glow)"
                                         />
                                         <path
-                                            d={ecgPath}
+                                            ref={ecgGlowElRef}
+                                            d=""
                                             stroke={ecgColor}
                                             strokeWidth="5"
                                             fill="none"
                                             opacity="0.15"
                                         />
                                     </>
-                                ) : isHeart ? (
-                                    /* Heart phase — centred in view */
+                                ) : isComplete ? (
+                                    /* Signal beacon — radiating ping rings */
                                     <g transform="translate(240,50)" filter="url(#heart-glow)">
-                                        {/* Beating heart using animateTransform */}
-                                        <g style={{ animation: 'heartbeat 0.82s ease-in-out infinite', transformOrigin: 'center' }}>
-                                            {/* Heart path centred at 0,0 — scale ~30px */}
-                                            <path
-                                                d="M0,-14 C6,-22 18,-22 18,-10 C18,0 0,14 0,14 C0,14 -18,0 -18,-10 C-18,-22 -6,-22 0,-14 Z"
-                                                fill="#FF5A3C"
-                                                opacity="0.92"
+                                        {/* Expanding ping rings */}
+                                        {[0, 1, 2].map((i) => (
+                                            <circle
+                                                key={i}
+                                                cx="0" cy="0" r="20"
+                                                fill="none"
+                                                stroke={ecgColor}
+                                                strokeWidth="1.5"
+                                                style={{
+                                                    animation: `signal-ping 2.4s ${i * 0.8}s ease-out infinite`,
+                                                    transformOrigin: 'center',
+                                                }}
                                             />
-                                            {/* Highlight glint */}
-                                            <ellipse cx="-6" cy="-10" rx="4" ry="3" fill="rgba(255,255,255,0.25)" transform="rotate(-25)" />
-                                        </g>
-                                        {/* Outer glow ring */}
-                                        <circle r="26" fill="none" stroke="#FF5A3C" strokeWidth="1" opacity="0.25"
-                                            style={{ animation: 'heart-ring 0.82s ease-out infinite' }} />
+                                        ))}
+                                        {/* Center beacon dot */}
+                                        <circle cx="0" cy="0" r="6" fill={ecgColor} opacity="0.9"
+                                            style={{ animation: 'signal-pulse 1.2s ease-in-out infinite' }} />
+                                        {/* Checkmark inside dot */}
+                                        <polyline
+                                            points="-3,1 -1,3.5 4,-2"
+                                            fill="none"
+                                            stroke={isDark ? '#000810' : '#1e2a32'}
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
                                     </g>
                                 ) : status === 'error' ? (
                                     <line x1="0" y1="50" x2="480" y2="50" stroke={errorColor} strokeWidth="1.5" opacity="0.8" />
                                 ) : (
-                                    <path d={wavePath} stroke={waveColor} strokeWidth="1.5" fill="none" opacity="0.85" />
+                                    <path ref={wavePathElRef} d="" stroke={waveColor} strokeWidth="1.5" fill="none" opacity="0.85" />
                                 )}
                             </svg>
 
@@ -470,7 +488,7 @@ const Contact = ({ isDark }) => {
                                             letterSpacing: '0.06em',
                                         }}
                                     >
-                                        {isFlatline ? '— BPM' : '72 BPM'}
+                                        {isComplete ? '— LOCKED' : '72 BPM'}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -478,7 +496,7 @@ const Contact = ({ isDark }) => {
 
                         {/* Status messages */}
                         <AnimatePresence mode="wait">
-                            {status === 'sent' && !isHeart && (
+                            {status === 'sent' && !isComplete && (
                                 <motion.div
                                     key="ecg-msg"
                                     initial={{ opacity: 0, y: -6 }}
@@ -496,9 +514,9 @@ const Contact = ({ isDark }) => {
                                     ⚡ TRANSMITTING PULSE...
                                 </motion.div>
                             )}
-                            {isHeart && (
+                            {isComplete && (
                                 <motion.div
-                                    key="heart-msg"
+                                    key="complete-msg"
                                     initial={{ opacity: 0, scale: 0.85, y: -6 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
@@ -506,24 +524,17 @@ const Contact = ({ isDark }) => {
                                     style={{
                                         fontFamily: 'JetBrains Mono, monospace',
                                         fontSize: '0.8rem',
-                                        color: '#FF5A3C',
+                                        color: ecgColor,
                                         textAlign: 'center',
                                         marginBottom: '12px',
                                         letterSpacing: '0.06em',
-                                        textShadow: '0 0 12px rgba(255,90,60,0.45)',
+                                        textShadow: `0 0 12px ${ecgColor}55`,
                                     }}
                                 >
-                                    ❤ MESSAGE DELIVERED
+                                    ✓ SIGNAL LOCKED · MESSAGE DELIVERED
                                 </motion.div>
                             )}
-                            {status === 'sent' && (
-                                <motion.div
-                                    key="sent-sub"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: isHeart ? 0 : 0 }}
-                                    style={{ display: 'none' }}
-                                />
-                            )}
+
                             {status === 'error' && (
                                 <motion.div
                                     key="error"
@@ -544,8 +555,176 @@ const Contact = ({ isDark }) => {
                             )}
                         </AnimatePresence>
 
-                        {/* Form */}
-                        <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* ── Success card ─ shown when all 3 ECG sweeps complete ── */}
+                        <AnimatePresence>
+                            {isComplete && (
+                                <motion.div
+                                    key="success-card"
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+                                    style={{
+                                        border:       `1px solid ${ecgColor}35`,
+                                        background:   isDark ? 'rgba(75,216,160,0.035)' : 'rgba(64,200,128,0.06)',
+                                        borderRadius: '4px',
+                                        padding:      '20px 20px 16px',
+                                        marginBottom: '10px',
+                                    }}
+                                >
+                                    {/* Header: animated ring + checkmark + title */}
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
+                                        <svg width="36" height="36" viewBox="0 0 36 36" style={{ flexShrink: 0, marginTop: '1px' }}>
+                                            <circle cx="18" cy="18" r="15" fill="none" stroke={ecgColor} strokeWidth="1.5" opacity="0.2" />
+                                            <circle
+                                                cx="18" cy="18" r="15"
+                                                fill="none"
+                                                stroke={ecgColor}
+                                                strokeWidth="1.5"
+                                                strokeDasharray="94"
+                                                strokeDashoffset="94"
+                                                strokeLinecap="round"
+                                                style={{ animation: 'success-ring-draw 0.55s ease-out forwards' }}
+                                            />
+                                            <polyline
+                                                points="10,18 16,24 26,12"
+                                                fill="none"
+                                                stroke={ecgColor}
+                                                strokeWidth="2.2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeDasharray="28"
+                                                strokeDashoffset="28"
+                                                style={{ animation: 'success-check-draw 0.35s 0.5s ease-out forwards' }}
+                                            />
+                                        </svg>
+                                        <div>
+                                            <div style={{
+                                                fontFamily:    'Syne, sans-serif',
+                                                fontWeight:    800,
+                                                fontSize:      '1rem',
+                                                color:         ecgColor,
+                                                letterSpacing: '0.04em',
+                                                marginBottom:  '3px',
+                                            }}>
+                                                TRANSMISSION COMPLETE
+                                            </div>
+                                            <div style={{
+                                                fontFamily:    'JetBrains Mono, monospace',
+                                                fontSize:      '0.58rem',
+                                                color:         ecgColor,
+                                                opacity:       0.55,
+                                                letterSpacing: '0.08em',
+                                            }}>
+                                                SIGNAL LOCKED · AWAITING ACK
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Flowing success wave */}
+                                    <div style={{
+                                        height:       '46px',
+                                        overflow:     'hidden',
+                                        borderRadius: '2px',
+                                        marginBottom: '16px',
+                                        background:   isDark ? '#000810' : '#1e2a32',
+                                        border:       `1px solid ${ecgColor}18`,
+                                        position:     'relative',
+                                    }}>
+                                        <svg
+                                            width="100%" height="46" viewBox="0 0 480 46"
+                                            preserveAspectRatio="none"
+                                            style={{ display: 'block', overflow: 'visible' }}
+                                        >
+                                            <defs>
+                                                <filter id="success-wave-glow" x="-5%" y="-100%" width="110%" height="300%">
+                                                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                                                    <feMerge>
+                                                        <feMergeNode in="blur" />
+                                                        <feMergeNode in="SourceGraphic" />
+                                                    </feMerge>
+                                                </filter>
+                                            </defs>
+                                            {/* Glow fill */}
+                                            <path
+                                                d="M-480,23 C-400,7 -320,39 -240,23 C-160,7 -80,39 0,23 C80,7 160,39 240,23 C320,7 400,39 480,23 C560,7 640,39 720,23 C800,7 880,39 960,23 L960,46 L-480,46 Z"
+                                                fill={ecgColor} opacity="0.07"
+                                                style={{ animation: 'success-wave-scroll 2.6s linear infinite' }}
+                                            />
+                                            {/* Reverse secondary wave */}
+                                            <path
+                                                d="M-480,23 C-400,39 -320,7 -240,23 C-160,39 -80,7 0,23 C80,39 160,7 240,23 C320,39 400,7 480,23 C560,39 640,7 720,23 C800,39 880,7 960,23"
+                                                fill="none" stroke={ecgColor} strokeWidth="1" opacity="0.2"
+                                                style={{ animation: 'success-wave-scroll 4s linear infinite reverse' }}
+                                            />
+                                            {/* Primary glowing wave */}
+                                            <path
+                                                d="M-480,23 C-400,7 -320,39 -240,23 C-160,7 -80,39 0,23 C80,7 160,39 240,23 C320,7 400,39 480,23 C560,7 640,39 720,23 C800,7 880,39 960,23"
+                                                fill="none" stroke={ecgColor} strokeWidth="2" opacity="0.9"
+                                                filter="url(#success-wave-glow)"
+                                                style={{ animation: 'success-wave-scroll 2.6s linear infinite' }}
+                                            />
+                                        </svg>
+                                    </div>
+
+                                    {/* Transmission receipt */}
+                                    <div style={{
+                                        fontFamily:   'JetBrains Mono, monospace',
+                                        fontSize:     '0.68rem',
+                                        lineHeight:   2,
+                                        borderTop:    `1px solid ${ecgColor}18`,
+                                        paddingTop:   '12px',
+                                        marginBottom: '16px',
+                                    }}>
+                                        {[
+                                            ['FROM',    formData.name    || '—'],
+                                            ['SUBJECT', formData.subject || 'General Enquiry'],
+                                            ['STATUS',  'QUEUED FOR REPLY'],
+                                            ['ETA',     '24–48h'],
+                                        ].map(([k, v]) => (
+                                            <div key={k} style={{ display: 'flex', gap: '10px' }}>
+                                                <span style={{ width: '58px', flexShrink: 0, color: ecgColor, opacity: 0.5 }}>{k}</span>
+                                                <span style={{ color: textColor }}>{v}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Send another */}
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        style={{
+                                            fontFamily:    'JetBrains Mono, monospace',
+                                            fontSize:      '0.7rem',
+                                            fontWeight:    700,
+                                            letterSpacing: '0.09em',
+                                            padding:       '10px 18px',
+                                            width:         '100%',
+                                            background:    'transparent',
+                                            color:         ecgColor,
+                                            border:        `1px solid ${ecgColor}40`,
+                                            borderRadius:  '2px',
+                                            cursor:        'pointer',
+                                            textTransform: 'uppercase',
+                                            transition:    'background 0.2s, border-color 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background  = `${ecgColor}12`;
+                                            e.currentTarget.style.borderColor = ecgColor;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background  = 'transparent';
+                                            e.currentTarget.style.borderColor = `${ecgColor}40`;
+                                        }}
+                                    >
+                                        ← SEND ANOTHER MESSAGE
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Form — hidden after successful send */}
+                        {!isComplete && <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
                             {/* Name + Email */}
                             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
@@ -606,7 +785,7 @@ const Contact = ({ isDark }) => {
                             >
                                 {status === 'sending' ? 'TRANSMITTING...' : 'SEND MESSAGE →'}
                             </button>
-                        </form>
+                        </form>}
                     </motion.div>
                 </div>
             </div>

@@ -1,7 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Syne:wght@400..800&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
 
 /* ===== CSS Variables ===== */
 :root {
@@ -16,6 +14,20 @@
   --backlit-white: #ffffff; /* brightest text / highlights */
   --font-mono: 'JetBrains Mono', monospace;
   --font-display: 'Syne', sans-serif;
+
+  /* Resolved tokens — dark-mode defaults, overridden by body.light-mode below */
+  --color-text:    #ced0ce;
+  --color-accent:  #ced0ce;
+  --color-dim:     rgba(206,208,206,0.55);
+  --color-border:  rgba(107,113,107,0.5);
+  --color-card-bg: rgba(156,160,156,0.04);
+
+  /* Z-index stacking layers */
+  --z-scanlines: 9998;   /* body::after scanline overlay   */
+  --z-noise:     9999;   /* body::before noise texture     */
+  --z-spark:     99997;  /* click spark particles          */
+  --z-iris:      99990;  /* iris wipe transition           */
+  --z-debug:     99999;  /* debug overlay HUD              */
 
   /* Light mode palette — earthy industrial */
   --lm-bg:         #E8EAE7;   /* warm light gray-green base */
@@ -57,6 +69,13 @@ body.light-mode {
   color: var(--lm-text);
   --pcb-green: var(--lm-accent);
   --cap-cyan: #687078;
+
+  /* Resolved token overrides */
+  --color-text:    #1C2226;
+  --color-accent:  #C07838;
+  --color-dim:     rgba(28,34,38,0.52);
+  --color-border:  rgba(104,112,120,0.4);
+  --color-card-bg: rgba(255,255,255,0.35);
 }
 
 /* ===== Noise Texture Overlay ===== */
@@ -67,7 +86,7 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
   opacity: 0.03;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-noise);
 }
 
 /* ===== Scanline Overlay ===== */
@@ -83,7 +102,7 @@ body::after {
     rgba(0, 255, 136, 0.015) 4px
   );
   pointer-events: none;
-  z-index: 9998;
+  z-index: var(--z-scanlines);
 }
 
 /* Light mode — no scanlines */
@@ -299,7 +318,7 @@ body.light-mode .pcb-card:hover {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.9);
-  z-index: 99999;
+  z-index: var(--z-debug);
   pointer-events: none;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -312,7 +331,7 @@ body.light-mode .pcb-card:hover {
   position: fixed;
   inset: 0;
   background: #0A0A0F;
-  z-index: 99990;
+  z-index: var(--z-iris);
   transform: scale(0);
   border-radius: 50%;
   pointer-events: none;
@@ -421,6 +440,19 @@ body.light-mode .nav-glass {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* ===== Nav Link — replaces imperative onMouseEnter/Leave hover ===== */
+.nav-link {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-dim);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  transition: color 0.2s ease;
+}
+.nav-link:hover {
+  color: var(--color-accent);
+}
+
 /* ===== Spark Particle ===== */
 .spark {
   position: fixed;
@@ -429,7 +461,7 @@ body.light-mode .nav-glass {
   border-radius: 50%;
   background:#79bfc9;
   pointer-events: none;
-  z-index: 99997;
+  z-index: var(--z-spark);
 }
 
 /* ===== Datasheet Table ===== */
@@ -520,32 +552,18 @@ body.light-mode .oscilloscope-grid {
     linear-gradient(90deg, rgba(192,120,56,0.09) 1px, transparent 1px);
 }
 
-/* ===== Levitate (PCB board float) ===== */
-@keyframes levitate {
-  0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
-  33%       { transform: translateY(-8px) rotate(0.3deg); }
-  66%       { transform: translateY(-4px) rotate(-0.2deg); }
+/* @keyframes levitate — canonical (no-rotation) definition is further below */
+/* @keyframes glow-pulse — canonical (logo ambient) definition is further below */
+
+/* ===== Signal beacon (contact success) ===== */
+@keyframes signal-ping {
+  0%   { transform: scale(0.3); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0;   }
 }
 
-/* ===== Glow pulse (board ambient) ===== */
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.6; transform: scaleX(1); }
-  50%       { opacity: 1;   transform: scaleX(1.08); }
-}
-
-/* ===== Heartbeat (contact success) ===== */
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1);    }
-  14%       { transform: scale(1.14); }
-  28%       { transform: scale(1);    }
-  42%       { transform: scale(1.08); }
-  56%       { transform: scale(1);    }
-}
-
-/* ===== Heart ring pulse ===== */
-@keyframes heart-ring {
-  0%   { r: 22; opacity: 0.35; }
-  100% { r: 38; opacity: 0; }
+@keyframes signal-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.9; }
+  50%       { transform: scale(1.15); opacity: 0.6; }
 }
 
 /* ===== Antenna blink (idle character) ===== */
@@ -553,12 +571,7 @@ body.light-mode .oscilloscope-grid {
   0%, 90%, 100% { opacity: 1;   }
   45%            { opacity: 0.2; }
 }
-
-/* ===== Blink-slow (board LED when cursor outside) ===== */
-@keyframes blink-slow {
-  0%, 100% { opacity: 1;   }
-  50%       { opacity: 0.3; }
-}
+/* @keyframes blink-slow — canonical (LED-safe) definition is further below */
 
 /* ===== PCB LED green pulse ===== */
 .pcb-led-green {
@@ -617,4 +630,106 @@ body.light-mode ::selection {
 body.light-mode .pcb-card {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===== Lever Range Input (mobile horizontal scrubber) ===== */
+.lever-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(206,208,206,0.12);
+  border: 1px solid rgba(206,208,206,0.2);
+  outline: none;
+  cursor: grab;
+  width: 100%;
+  display: block;
+}
+body.light-mode .lever-range-input {
+  background: rgba(28,34,38,0.1);
+  border-color: rgba(104,112,120,0.2);
+}
+.lever-range-input:active { cursor: grabbing; }
+
+.lever-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 26px;
+  border-radius: 5px;
+  cursor: grab;
+  background: linear-gradient(140deg, #484848 0%, #1c1c1c 60%, #2e2e2e 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 0.12s;
+  border: none;
+}
+.lever-range-input::-webkit-slider-thumb:hover  { transform: scaleX(1.1); }
+.lever-range-input::-webkit-slider-thumb:active { cursor: grabbing; transform: scaleX(0.94); }
+
+.lever-range-input::-moz-range-thumb {
+  width: 28px; height: 26px;
+  border-radius: 5px;
+  border: none;
+  cursor: grab;
+  background: linear-gradient(140deg, #484848, #1c1c1c);
+}
+
+body.light-mode .lever-range-input::-webkit-slider-thumb {
+  background: linear-gradient(140deg, #c0c4c0 0%, #909490 60%, #b0b4b0 100%);
+}
+
+/* ===== Device Screen Glow ===== */
+.device-screen-glow {
+  box-shadow:
+    0 0 18px rgba(75,216,160,0.28),
+    inset 0 0 12px rgba(0,0,0,0.6);
+}
+
+/* ===== Node Graph Ping ===== */
+@keyframes node-ping {
+  0%, 100% { r: 2;   opacity: 0.7; }
+  50%       { r: 3.5; opacity: 1;   }
+}
+
+/* ===== Signal Path Animation ===== */
+@keyframes signal-drift {
+  0%   { stroke-dashoffset: 400; }
+  100% { stroke-dashoffset: 0;   }
+}
+
+/* ===== Lever handle shine ===== */
+@keyframes lever-idle-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--lever-active,rgba(206,208,206,0.4)); }
+  50%       { box-shadow: 0 0 18px var(--lever-active,rgba(206,208,206,0.7)); }
+}
+
+/* ===== Logo ambient glow pulse ===== */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.04; }
+  50%       { opacity: 0.10; }
+}
+
+/* ===== Slow blink for LEDs ===== */
+@keyframes blink-slow {
+  0%, 45%, 55%, 100% { opacity: 0.82; }
+  50%                 { opacity: 0.2;  }
+}
+
+/* ===== Success card animations ===== */
+
+/* Flowing sine wave — translate repeating path to simulate infinite scroll */
+@keyframes success-wave-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(480px); }
+}
+
+/* Ring draws in via stroke-dashoffset (94 = circumference of r=15 circle) */
+@keyframes success-ring-draw {
+  from { stroke-dashoffset: 94; }
+  to   { stroke-dashoffset: 0;  }
+}
+
+/* Checkmark draws in after the ring completes */
+@keyframes success-check-draw {
+  from { stroke-dashoffset: 28; opacity: 0; }
+  to   { stroke-dashoffset: 0;  opacity: 1; }
 }
