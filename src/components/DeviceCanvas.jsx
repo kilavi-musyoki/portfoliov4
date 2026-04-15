@@ -156,7 +156,7 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
             const target = tvRef.current;
 
             setSmoothLever(prev => {
-                const next = lerp(prev, target, 0.08);
+                const next = lerp(prev, target, 0.12);
                 return Math.abs(next - target) < 0.001 ? target : next;
             });
 
@@ -236,8 +236,8 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
     }, [mousePosRef, isDark]);
 
     // ── Derived values ────────────────────────────────────────────────────────
-    const pcbFadeIn  = norm(smoothLever, 0.24, 0.60);
-    const pcbFadeOut = 1 - norm(smoothLever, 0.76, 0.90);
+    const pcbFadeIn  = norm(smoothLever, 0.22, 0.55);
+    const pcbFadeOut = 1 - norm(smoothLever, 0.74, 0.88);
     const pcbOpacity = pcbFadeIn * pcbFadeOut;
     const shellVisible = smoothLever < 0.58;
     const boardLayer = leverToLayer(leverValue);
@@ -299,7 +299,7 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
             <div style={{
                 position: 'absolute', inset: 0, zIndex: 1,
                 opacity: pcbOpacity,
-                transition: 'opacity 0.6s ease',
+                transition: 'opacity 0.75s ease',
             }}>
                 <PCBBoard layer={boardLayer} isDark={isDark} />
             </div>
@@ -315,8 +315,8 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
                 borderRadius: shadowAlpha > 0.05 ? '3px' : '0px',
                 overflow: shadowAlpha > 0.05 ? 'hidden' : 'visible',
                 boxShadow: shadowAlpha > 0.02 ? screenShadow : 'none',
-                pointerEvents: 'none',
             }}>
+
                 {/* Glass reflection — fades with shadow */}
                 {shadowAlpha > 0.05 && (
                     <div style={{

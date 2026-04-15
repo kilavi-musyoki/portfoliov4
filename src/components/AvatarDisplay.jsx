@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, memo } from 'react';
-import MatrixFace from './MatrixFace.jsx';
+import TetrusGame from './TetrusGame.jsx';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const norm = (v, a, b) => clamp((v - a) / (b - a), 0, 1);
@@ -65,16 +65,20 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
         return () => cancelAnimationFrame(rafRef.current);
     }, []);
 
-    // ── Layer opacities ──────────────────────────────────────────────────────
-    const nodeOpacity = clamp(1 - Math.abs((leverValue - 0.46) * 2.8), 0, 1);
-    const systemOpacity = norm(leverValue, 0.58, 0.74) * (1 - norm(leverValue, 0.82, 0.95));
-    const logoOpacity = norm(leverValue, 0.79, 0.94);
-    const bgOpacity = 1 - norm(leverValue, 0.48, 0.62);
+    // ── Layer opacities — tuned for seamless cross-dissolve ────────────────────
+    //  Game (0→0.12 full, 0.12→0.42 fade-out)  overlaps  PCB (0.22→0.55 fade-in)
+    //  Node graph peaks mid-range, System overlaps its tail, Logo overlaps System's tail
+    const gameOpacity   = Math.max(0, 1 - norm(leverValue, 0.12, 0.42));
+    const nodeOpacity   = clamp(1 - Math.abs((leverValue - 0.48) * 2.3), 0, 1);
+    const systemOpacity = norm(leverValue, 0.52, 0.72) * (1 - norm(leverValue, 0.78, 0.92));
+    const logoOpacity   = norm(leverValue, 0.74, 0.92);
+    const bgOpacity     = 1 - norm(leverValue, 0.38, 0.55);
     const bg = `rgba(3, 11, 5, ${bgOpacity})`;
 
     const scanY = ((phase * 14) % (H + 2));
     const faceC = '#4BD8A0';
     const gridC = 'rgba(75,216,160,0.07)';
+
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', background: bg, borderRadius: '3px', overflow: 'hidden' }}>
@@ -91,11 +95,21 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
                 transform: `perspective(260px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
                 transformOrigin: 'center center',
                 willChange: 'transform',
+                pointerEvents: 'auto',
             }}>
-                {/* LAYER 0: Matrix Digital Rain */}
-                <MatrixFace leverValue={leverValue} mousePosRef={mousePosRef} />
+                {/* LAYER 0: TETRUS Arcade Game */}
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: gameOpacity,
+                    transition: 'opacity 0.55s ease',
+                    zIndex: 1,
+                    pointerEvents: gameOpacity > 0.05 ? 'auto' : 'none',
+                }}>
+                    <TetrusGame glitchLevel={leverValue} isDark={isDark} />
+                </div>
 
-                <svg viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 2 }} xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 2, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <pattern id="av-grid" x="0" y="0" width="20" height="16" patternUnits="userSpaceOnUse">
                             <line x1="0" y1="0" x2="20" y2="0" stroke={gridC} strokeWidth="0.4" />
@@ -114,7 +128,7 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
                     <rect width={W} height={H} fill="url(#av-grid)" opacity={bgOpacity} />
 
                     {/* ── LAYER 2: NODE GRAPH ── */}
-                    <g opacity={nodeOpacity} style={{ transition: 'opacity 0.5s ease' }}>
+                    <g opacity={nodeOpacity} style={{ transition: 'opacity 0.7s ease' }}>
                         {EDGES.map(([a, b], i) => (
                             <line key={i}
                                 x1={NODES[a].x} y1={NODES[a].y}
@@ -135,7 +149,7 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
 
 
                     {/* ── LAYER 3: SYSTEM STATE ── */}
-                    <g opacity={systemOpacity} style={{ transition: 'opacity 0.4s ease' }}>
+                    <g opacity={systemOpacity} style={{ transition: 'opacity 0.6s ease' }}>
                         <rect x="0" y={scanY} width={W} height="0.8" fill="#4BD8A0" opacity="0.36" />
                         <g stroke="rgba(75,216,160,0.38)" strokeWidth="0.5" fill="none">
                             <circle cx={CX} cy={CY} r="26" />

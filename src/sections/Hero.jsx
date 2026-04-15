@@ -383,7 +383,9 @@ const Hero = ({ isDark, glitch = false }) => {
                             }}>
                                 {isMobile ? '← DRAG SLIDER TO DECONSTRUCT →' : '↑ DRAG LEVER TO DECONSTRUCT ↓'}
                             </div>
+
                         </motion.div>
+
                     </motion.div>
                 )}
             </AnimatePresence>
