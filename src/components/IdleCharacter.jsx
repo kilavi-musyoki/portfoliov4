@@ -107,6 +107,24 @@ const IdleCharacter = ({ isDark = true }) => {
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
             if (activityId.current === id) {
+                let isForbidden = false;
+                const hero = document.getElementById('hero');
+                const contact = document.getElementById('contact');
+                
+                if (hero) {
+                    const rect = hero.getBoundingClientRect();
+                    if (rect.top <= window.innerHeight && rect.bottom >= 0) isForbidden = true;
+                }
+                if (contact) {
+                    const rect = contact.getBoundingClientRect();
+                    if (rect.top <= window.innerHeight && rect.bottom >= 0) isForbidden = true;
+                }
+                
+                if (isForbidden) {
+                    scheduleAppearance();
+                    return;
+                }
+
                 cancelRef.current = false;
                 setVisible(true);
             }
@@ -287,6 +305,7 @@ const IdleCharacter = ({ isDark = true }) => {
                 willChange: 'transform',
             }}
         >
+            <div style={{ transform: 'scale(0.65)', transformOrigin: 'bottom center', position: 'relative' }}>
             {/* ── Speech bubble ─────────────────────────────────────────── */}
             <AnimatePresence>
                 {showMsg && (
@@ -521,6 +540,7 @@ const IdleCharacter = ({ isDark = true }) => {
                 </g>
 
             </svg>
+            </div>
         </div>
     );
 };
