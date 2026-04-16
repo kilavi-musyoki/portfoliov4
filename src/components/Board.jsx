@@ -260,7 +260,7 @@ const PCBBoard = memo(({ layer = 'casing', className = '', isDark = true }) => {
                 </defs>
 
                 {/* ══════ CASING ══════ */}
-                <g opacity={vis.casing} style={{ transition: 'opacity 0.8s ease' }}>
+                <g opacity={vis.casing} style={{ transition: 'opacity 0.3s ease' }}>
                     <rect x="2" y="2" width="196" height="156" rx="6" fill={casingFill} stroke={casingStroke} strokeWidth="1" />
                     <rect x="8" y="8" width="184" height="144" rx="4" fill={casingInner} stroke="rgba(0,0,0,.2)" strokeWidth="0.5" />
                     {[...Array(13)].map((_, i) => (
@@ -276,7 +276,7 @@ const PCBBoard = memo(({ layer = 'casing', className = '', isDark = true }) => {
                 </g>
 
                 {/* ══════ THERMAL ══════ */}
-                <g opacity={vis.thermal} style={{ transition: 'opacity 0.8s ease' }}>
+                <g opacity={vis.thermal} style={{ transition: 'opacity 0.3s ease' }}>
                     <rect x="2" y="2" width="196" height="156" rx="6" fill="url(#thermal-grad)" />
                     <text x="100" y="85" textAnchor="middle" fontFamily="JetBrains Mono,monospace" fontSize="3.8" fill={thermalLabel}>
                         THERMAL PROFILE — ACTIVE
@@ -290,7 +290,7 @@ const PCBBoard = memo(({ layer = 'casing', className = '', isDark = true }) => {
                 </g>
 
                 {/* ══════ PCB BASE ══════ */}
-                <g opacity={vis.pcb} style={{ transition: 'opacity 0.8s ease' }}>
+                <g opacity={vis.pcb} style={{ transition: 'opacity 0.3s ease' }}>
                     {/* Board substrate */}
                     <rect x="4" y="4" width="192" height="152" rx="5" fill={pcbSubstrate} />
 
@@ -576,7 +576,7 @@ const PCBBoard = memo(({ layer = 'casing', className = '', isDark = true }) => {
                 </g>
 
                 {/* ══════ TRACES ══════ */}
-                <g opacity={vis.traces} style={{ transition: 'opacity 0.8s ease' }}>
+                <g opacity={vis.traces} style={{ transition: 'opacity 0.3s ease' }}>
                     <g stroke={traceColor} fill="none" filter="url(#pcb-glow)">
                         {/* ── POWER RAIL: VCC (top horizontal bus) — thicker trace ── */}
                         <path d="M14 25 L85 25 L88 22 L88 60" strokeWidth="1.6" opacity="0.72" />
@@ -698,7 +698,7 @@ const PCBBoard = memo(({ layer = 'casing', className = '', isDark = true }) => {
                 </g>
 
                 {/* ══════ COMPONENTS ══════ */}
-                <g opacity={vis.components} style={{ transition: 'opacity 0.8s ease' }}>
+                <g opacity={vis.components} style={{ transition: 'opacity 0.3s ease' }}>
                     {/* ESP32 Module — enhanced with shield mesh and die detail */}
                     <g onMouseEnter={e => handleHover(e, { id: 'U1', label: 'ESP32-WROOM-32', func: 'Core Processing Unit', rating: '240MHz dual-core Xtensa LX6' })}
                         onMouseLeave={handleLeave} style={{ cursor: 'crosshair' }}>

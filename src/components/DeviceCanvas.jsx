@@ -156,7 +156,7 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
             const target = tvRef.current;
 
             setSmoothLever(prev => {
-                const next = lerp(prev, target, 0.12);
+                const next = lerp(prev, target, 0.75);
                 return Math.abs(next - target) < 0.001 ? target : next;
             });
 
@@ -299,7 +299,6 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
             <div style={{
                 position: 'absolute', inset: 0, zIndex: 1,
                 opacity: pcbOpacity,
-                transition: 'opacity 0.75s ease',
             }}>
                 <PCBBoard layer={boardLayer} isDark={isDark} />
             </div>

@@ -22,13 +22,14 @@ export default function LayerLabel({ leverValue, isDark }) {
             zIndex: 10, pointerEvents: 'none',
         }}>
             <AnimatePresence mode="wait">
-                <motion.div
-                    key={layer.name}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
+                {leverValue < 0.8 && (
+                    <motion.div
+                        key={layer.name}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
                     {/* Name + status badge */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
                         <div style={{
@@ -66,6 +67,7 @@ export default function LayerLabel({ leverValue, isDark }) {
                         <span style={{ opacity: 0.45 }}>// DEPTH: {pct}%</span>
                     </div>
                 </motion.div>
+                )}
             </AnimatePresence>
         </div>
     );

@@ -16,8 +16,8 @@ const SCORE_TABLE  = [0, 100, 300, 500, 800];
 const LEVEL_LINES  = 10;
 const DROP_INTERVALS = [820,700,600,500,400,300,220,150,100,80,60];
 
-const GLITCH_LIGHT  = 0.15;
-const GLITCH_HEAVY  = 0.38;
+const GLITCH_LIGHT  = 0.20;
+const GLITCH_HEAVY  = 0.40;
 const GLITCH_RESUME = 0.06;
 const CTRL_ZONE_RATIO = 0.30; // bottom 30% = controls
 
@@ -104,6 +104,7 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
     const levelRef      = useRef(0);
     const linesRef      = useRef(0);
     const lastDropRef   = useRef(0);
+    const lastHardDropRef = useRef(0);
     const overTimerRef  = useRef(null);
     const glitchRef     = useRef(0);
     const heavyGlRef    = useRef(false);
@@ -192,7 +193,7 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
         };
 
         // ── Actions ───────────────────────────────────────────────────────────
-        const canInput = ()=>stateRef.current==='playing'&&glitchRef.current<=GLITCH_LIGHT&&Date.now()>=flashEndRef.current;
+        const canInput = ()=>stateRef.current==='playing'&&Date.now()>=flashEndRef.current;
         const tryMove  = dx=>{const c=curRef.current;if(isValid(boardRef.current,c.cells,c.x+dx,c.y)){c.x+=dx;SFX.move();}};
         const tryRotate= ()=>{
             const c=curRef.current,rot=rotateCW(c.cells),b=boardRef.current;
@@ -201,7 +202,16 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             else if (isValid(b,rot,c.x+1,c.y)){c.cells=rot;c.x++;SFX.rotate();}
         };
         const trySoft  = ()=>{if(isValid(boardRef.current,curRef.current.cells,curRef.current.x,curRef.current.y+1)){curRef.current.y++;scoreRef.current++;}};
-        const tryDrop  = ()=>{const c=curRef.current;while(isValid(boardRef.current,c.cells,c.x,c.y+1)){c.y++;scoreRef.current+=2;}landPiece(true);};
+        const tryDrop  = ()=>{
+            if(Date.now() - lastHardDropRef.current < 250) return;
+            lastHardDropRef.current = Date.now();
+            const c=curRef.current;
+            while(isValid(boardRef.current,c.cells,c.x,c.y+1)){
+                c.y++;
+                scoreRef.current+=2;
+            }
+            landPiece(true);
+        };
 
         const execBtn = key=>{
             if(!canInput()) return;
@@ -238,7 +248,7 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
         };
 
         // ── Draw: board background + grid + border ────────────────────────────
-        const drawBoard = (ts) => {
+        const drawBoard = (ts, gl) => {
             const board=flashBoardRef.current||boardRef.current;
             const flashRows=flashRowsRef.current;
             const flashing=flashEndRef.current>Date.now();
@@ -262,10 +272,18 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             // Cells
             for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
                 if(!board[r][c]) continue;
+                let drawC=c, drawR=r, drawColor=board[r][c];
+                
+                if(gl > GLITCH_LIGHT && Math.random() < gl * 2.5) {
+                    drawC += (Math.random() - 0.5) * gl * 4;
+                    drawR += (Math.random() - 0.5) * gl * 4;
+                    if(Math.random() < gl) drawColor = ['#FF1744','#00E5FF','#FFD600', '#E040FB'][Math.floor(Math.random()*4)];
+                }
+                
                 if(flashRows.includes(r)&&flashing)
-                    drawCell(c,r,flashPhase>0.5?'#FFFFFF':board[r][c],1);
+                    drawCell(drawC,drawR,flashPhase>0.5?'#FFFFFF':drawColor,1);
                 else
-                    drawCell(c,r,board[r][c]);
+                    drawCell(drawC,drawR,drawColor);
             }
 
             // Pulsing phosphor border
@@ -290,13 +308,27 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             ctx.shadowBlur=0;
         };
 
-        const drawCurrentAndGhost = () => {
+        const drawCurrentAndGhost = (gl) => {
             if(Date.now()<flashEndRef.current) return;
             const cur=curRef.current, board=boardRef.current;
             let gy=cur.y;
             while(isValid(board,cur.cells,cur.x,gy+1)) gy++;
-            if(gy>cur.y) cur.cells.forEach((row,r)=>row.forEach((v,c)=>{if(v&&gy+r>=0)drawGhostCell(cur.x+c,gy+r,cur.color);}));
-            cur.cells.forEach((row,r)=>row.forEach((v,c)=>{if(v&&cur.y+r>=0)drawCell(cur.x+c,cur.y+r,cur.color);}));
+            
+            if(gy>cur.y) cur.cells.forEach((row,r)=>row.forEach((v,c)=>{
+                if(v&&gy+r>=0) drawGhostCell(cur.x+c, gy+r, cur.color);
+            }));
+            
+            cur.cells.forEach((row,r)=>row.forEach((v,c)=>{
+                if(v&&cur.y+r>=0) {
+                    let drawC = cur.x+c, drawR = cur.y+r, drawColor = cur.color;
+                    if(gl > GLITCH_LIGHT && Math.random() < gl * 2) {
+                        drawC += (Math.random() - 0.5) * gl * 3;
+                        drawR += (Math.random() - 0.5) * gl * 3;
+                        if(Math.random() < gl) drawColor = '#FFFFFF';
+                    }
+                    drawCell(drawC, drawR, drawColor);
+                }
+            }));
         };
 
         // ── Draw: HUD panel ───────────────────────────────────────────────────
@@ -327,9 +359,16 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
                 y+=valFont*1.95;
             };
 
-            lbl('SCORE'); val(String(scoreRef.current).padStart(7,'0'),'#FFD600');
+            lbl('SCORE'); 
+            const scoreSz = Math.max(14, Math.floor(cellSize * 1.35));
+            ctx.font=`bold ${scoreSz}px "JetBrains Mono",monospace`;
+            ctx.fillStyle='#FFD600'; ctx.shadowColor='#FFD600'; ctx.shadowBlur=scoreSz*0.55;
+            ctx.fillText(String(scoreRef.current).padStart(6,'0'), infoX, y);
+            ctx.shadowBlur=0;
+            y += scoreSz * 1.45;
+
             lbl('LEVEL'); val(String(levelRef.current+1),'#6FD4FF');
-            lbl('LINES'); val(String(linesRef.current),'#4BD8A0',0.3);
+            lbl('LINES'); val(String(linesRef.current),'#4BD8A0');
 
             // Level bar
             const barW=hudW-8, barH=Math.max(3,Math.floor(valFont*0.28));
@@ -603,19 +642,66 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             ctx.textAlign='left';
         };
 
-        const drawSignalLost = (norm) => {
+        const drawSignalLost = (norm, ts) => {
             const cx=boardX+(COLS*cellSize)/2, cy=boardY+(ROWS*cellSize)/2;
-            const fS=Math.max(6,Math.floor(cellSize*0.88));
-            ctx.fillStyle=`rgba(0,0,0,${0.52+norm*0.40})`;
+            const t = ts * 0.01;
+            const jitterX = Math.sin(t*3) * norm * 6 + (Math.random()-0.5)*norm*6;
+            const jitterY = Math.cos(t*4) * norm * 6 + (Math.random()-0.5)*norm*6;
+            
+            ctx.fillStyle=`rgba(12,2,4,${0.35+norm*0.25})`; // Reduced opacity to see glitching blocks behind
             ctx.fillRect(boardX,boardY,COLS*cellSize,ROWS*cellSize);
+            
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // X_X Eyes
+            const eyeSize = Math.max(4, Math.floor(cellSize*0.6));
+            ctx.strokeStyle = Math.floor(t)%2===0 ? '#FF1744' : '#00E5FF';
+            ctx.lineWidth = Math.max(2, Math.floor(cellSize*0.2));
+            
+            const drawX = (ex, ey) => {
+                ctx.beginPath();
+                ctx.moveTo(ex - eyeSize, ey - eyeSize);
+                ctx.lineTo(ex + eyeSize, ey + eyeSize);
+                ctx.moveTo(ex + eyeSize, ey - eyeSize);
+                ctx.lineTo(ex - eyeSize, ey + eyeSize);
+                ctx.stroke();
+            };
+            drawX(cx - 18 + jitterX, cy - 15 + jitterY);
+            drawX(cx + 18 + jitterX, cy - 15 + jitterY);
+            
+            // Cartoon Tongue hanging out
+            const mouthY = cy + 5 + jitterY;
+            ctx.fillStyle = '#FF1744';
+            ctx.beginPath();
+            ctx.moveTo(cx - 8 + jitterX, mouthY);
+            ctx.bezierCurveTo(cx - 12 + jitterX, mouthY + 22, cx + 12 + jitterX, mouthY + 22, cx + 8 + jitterX, mouthY);
+            ctx.fill();
+            
+            // Mouth line
+            ctx.strokeStyle = '#FFD600';
+            ctx.beginPath();
+            ctx.moveTo(cx - 14 + jitterX, mouthY - 2);
+            ctx.lineTo(cx + 14 + jitterX, mouthY + 2);
+            ctx.stroke();
+            
+            // Text rendering
+            const fS=Math.max(6,Math.floor(cellSize*0.88));
             ctx.textAlign='center';
-            ctx.font=`bold ${fS}px "JetBrains Mono",monospace`;
-            ctx.fillStyle=`rgba(255,45,45,${0.72+norm*0.28})`; ctx.shadowColor='#FF3030'; ctx.shadowBlur=fS*(0.8+norm*0.8);
-            ctx.fillText('SIGNAL LOST',cx,cy); ctx.shadowBlur=0;
-            const sf=Math.floor(fS*0.57);
-            ctx.font=`bold ${sf}px "JetBrains Mono",monospace`;
-            ctx.fillStyle=`rgba(255,200,0,${0.5+norm*0.35})`;
-            ctx.fillText('RECALIBRATING...',cx,cy+fS*1.4);
+            const fontScale = 1 + norm * 0.2 * Math.sin(t*5);
+            ctx.font=`bold ${fS * fontScale}px "JetBrains Mono",monospace`;
+            ctx.fillStyle= '#E040FB';
+            ctx.shadowColor= ctx.fillStyle; 
+            ctx.shadowBlur=fS * 1.5;
+            
+            ctx.fillText('DEAD', cx + jitterX, cy + 34 + jitterY);
+            ctx.shadowBlur=0;
+            
+            // Glitching floating symbols
+            for (let i=0; i<4; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#00E5FF' : '#FFD600';
+                ctx.fillText(['!','?','*','&'][i], cx + (Math.random()-0.5)*90, cy + (Math.random()-0.5)*90);
+            }
             ctx.textAlign='left';
         };
 
@@ -631,6 +717,66 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             ctx.save(); ctx.globalCompositeOperation='screen';
             ctx.fillStyle=`rgba(255,0,60,${intensity*0.07})`; ctx.fillRect(Math.floor(intensity*7),0,W,H);
             ctx.fillStyle=`rgba(0,220,255,${intensity*0.055})`; ctx.fillRect(-Math.floor(intensity*5),0,W,H);
+            ctx.restore();
+        };
+
+        const drawCracks = (norm) => {
+            if(norm < 0.01) return;
+            ctx.save();
+            
+            // Impact point upper middle
+            const ix = boardX + COLS * cellSize * 0.65;
+            const iy = boardY + ROWS * cellSize * 0.25;
+            
+            // Impact point lower left
+            const ix2 = boardX + COLS * cellSize * 0.2;
+            const iy2 = boardY + ROWS * cellSize * 0.75;
+
+            // LCD Ink Bleed (black blobs)
+            ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, norm * 2)})`;
+            ctx.beginPath();
+            ctx.arc(ix, iy, Math.max(10, 48 * norm), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ix - 18, iy + 25, Math.max(5, 30 * norm), 0, Math.PI * 2);
+            ctx.arc(ix + 15, iy - 20, Math.max(5, 38 * norm), 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(ix2, iy2, Math.max(15, 68 * norm), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ix2 + 32, iy2 - 15, Math.max(8, 44 * norm), 0, Math.PI * 2);
+            ctx.arc(ix2 - 15, iy2 + 38, Math.max(8, 40 * norm), 0, Math.PI * 2);
+            ctx.arc(ix2 + 12, iy2 - 45, Math.max(5, 26 * norm), 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glass Shards / Cracks
+            ctx.strokeStyle = `rgba(220, 255, 255, ${0.45 * norm})`;
+            ctx.lineWidth = Math.max(1, dpr * 1.2);
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = Math.max(2, dpr * 2) * norm;
+            ctx.lineJoin = 'miter';
+            
+            ctx.beginPath();
+            
+            // Cracks radiating from ix, iy
+            ctx.moveTo(ix, iy); ctx.lineTo(ix - 20, iy + 30); ctx.lineTo(ix - 45, iy + 65); ctx.lineTo(ix - 55, boardY + ROWS * cellSize);
+            ctx.moveTo(ix - 20, iy + 30); ctx.lineTo(ix - 60, iy + 20); ctx.lineTo(boardX, iy + 35);
+            ctx.moveTo(ix, iy); ctx.lineTo(ix + 25, iy - 15); ctx.lineTo(boardX + COLS * cellSize, iy - 20);
+            ctx.moveTo(ix, iy); ctx.lineTo(ix - 30, iy - 25); ctx.lineTo(ix - 60, boardY);
+            
+            // Lower left geometry
+            
+            ctx.moveTo(ix2, iy2); ctx.lineTo(ix2 + 30, iy2 - 20); ctx.lineTo(ix2 + 80, iy2 - 40);
+            ctx.moveTo(ix2 + 30, iy2 - 20); ctx.lineTo(ix2 + 45, iy2 + 25); ctx.lineTo(ix2 + 60, boardY + ROWS * cellSize);
+            ctx.moveTo(ix2, iy2); ctx.lineTo(boardX, iy2 - 15);
+            
+            // Spider web connectors
+            ctx.moveTo(ix - 45, iy + 65); ctx.lineTo(ix2 + 80, iy2 - 40);
+            ctx.moveTo(ix - 30, iy - 25); ctx.lineTo(ix - 20, iy + 30);
+            
+            ctx.stroke();
             ctx.restore();
         };
 
@@ -721,7 +867,7 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
                     if(overTimerRef.current){clearTimeout(overTimerRef.current);overTimerRef.current=null;}
                 }
                 if(ts-glitchSndRef.current>620){SFX.glitch();glitchSndRef.current=ts;}
-            } else if(gl<GLITCH_RESUME&&heavyGlRef.current){
+            } else if(gl<GLITCH_HEAVY&&heavyGlRef.current){
                 heavyGlRef.current=false; resetGame();
             }
 
@@ -738,10 +884,10 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             ctx.fillStyle=barGrd; ctx.fillRect(0,0,W,barH);
             ctx.shadowBlur=0; ctx.restore();
 
-            drawBoard(ts);
+            drawBoard(ts, gl);
 
-            if(state==='playing'){
-                drawCurrentAndGhost();
+            if(state==='playing' || state==='glitched'){
+                drawCurrentAndGhost(gl);
                 if(Date.now()>=flashEndRef.current){
                     const interval=DROP_INTERVALS[Math.min(levelRef.current,DROP_INTERVALS.length-1)];
                     if(ts-lastDropRef.current>=interval){
@@ -762,7 +908,10 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             if(gl>GLITCH_LIGHT){
                 const norm=Math.min(1,(gl-GLITCH_LIGHT)/(1-GLITCH_LIGHT));
                 applyGlitchDistortion(norm*0.72);
-                if(stateRef.current==='glitched') drawSignalLost(norm);
+                if(stateRef.current==='glitched') {
+                    drawSignalLost(norm, ts);
+                    drawCracks(norm);
+                }
             }
             if(state==='gameover') drawGameOver(ts);
         };

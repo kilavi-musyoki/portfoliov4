@@ -66,9 +66,9 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
     }, []);
 
     // ── Layer opacities — tuned for seamless cross-dissolve ────────────────────
-    //  Game (0→0.12 full, 0.12→0.42 fade-out)  overlaps  PCB (0.22→0.55 fade-in)
+    //  Game (0→0.40 full, 0.40→0.60 fade-out)  overlaps  PCB (0.22→0.55 fade-in)
     //  Node graph peaks mid-range, System overlaps its tail, Logo overlaps System's tail
-    const gameOpacity   = Math.max(0, 1 - norm(leverValue, 0.12, 0.42));
+    const gameOpacity   = Math.max(0, 1 - norm(leverValue, 0.40, 0.60));
     const nodeOpacity   = clamp(1 - Math.abs((leverValue - 0.48) * 2.3), 0, 1);
     const systemOpacity = norm(leverValue, 0.52, 0.72) * (1 - norm(leverValue, 0.78, 0.92));
     const logoOpacity   = norm(leverValue, 0.74, 0.92);
@@ -102,7 +102,6 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
                     position: 'absolute',
                     inset: 0,
                     opacity: gameOpacity,
-                    transition: 'opacity 0.55s ease',
                     zIndex: 1,
                     pointerEvents: gameOpacity > 0.05 ? 'auto' : 'none',
                 }}>
@@ -128,7 +127,7 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
                     <rect width={W} height={H} fill="url(#av-grid)" opacity={bgOpacity} />
 
                     {/* ── LAYER 2: NODE GRAPH ── */}
-                    <g opacity={nodeOpacity} style={{ transition: 'opacity 0.7s ease' }}>
+                    <g opacity={nodeOpacity}>
                         {EDGES.map(([a, b], i) => (
                             <line key={i}
                                 x1={NODES[a].x} y1={NODES[a].y}
@@ -149,7 +148,7 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
 
 
                     {/* ── LAYER 3: SYSTEM STATE ── */}
-                    <g opacity={systemOpacity} style={{ transition: 'opacity 0.6s ease' }}>
+                    <g opacity={systemOpacity}>
                         <rect x="0" y={scanY} width={W} height="0.8" fill="#4BD8A0" opacity="0.36" />
                         <g stroke="rgba(75,216,160,0.38)" strokeWidth="0.5" fill="none">
                             <circle cx={CX} cy={CY} r="26" />
@@ -170,7 +169,7 @@ export default memo(function AvatarDisplay({ leverValue, mousePosRef, isDark }) 
 
 
                     {/* ── LAYER 4: FLOATING KM LOGO ── */}
-                    <g opacity={logoOpacity} style={{ transition: 'opacity 0.7s ease' }}>
+                    <g opacity={logoOpacity}>
                         {/* Deep radial ambient glow */}
                         <ellipse cx={CX} cy="45" rx="52" ry="46" fill="rgba(75,216,160,0.07)" />
                         <ellipse cx={CX} cy="45" rx="28" ry="24" fill="rgba(75,216,160,0.05)" />
