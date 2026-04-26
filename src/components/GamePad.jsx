@@ -103,12 +103,12 @@ export default function GamePad({ leverValue = 0, isDark = true }) {
         ? 'linear-gradient(165deg, rgba(20,24,20,0.97) 0%, rgba(10,12,10,0.99) 100%)'
         : 'linear-gradient(165deg, rgba(196,200,196,0.97) 0%, rgba(176,180,176,0.99) 100%)';
 
-    const accentColor  = isDark ? '#4BD8A0' : '#C07838';
-    const panelBorder  = isDark ? 'rgba(75,216,160,0.18)' : 'rgba(192,120,56,0.22)';
+    const accentColor  = isDark ? '#4BD8A0' : '#0D9488';
+    const panelBorder  = isDark ? 'rgba(75,216,160,0.18)' : 'rgba(13,148,136,0.22)';
     const screwBg      = isDark ? '#181c18' : '#b8bcb8';
     const screwBorder  = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.14)';
-    const dividerClr   = isDark ? 'rgba(75,216,160,0.15)' : 'rgba(192,120,56,0.20)';
-    const ctrlLabel    = isDark ? 'rgba(75,216,160,0.30)' : 'rgba(192,120,56,0.35)';
+    const dividerClr   = isDark ? 'rgba(75,216,160,0.15)' : 'rgba(13,148,136,0.20)';
+    const ctrlLabel    = isDark ? 'rgba(75,216,160,0.30)' : 'rgba(13,148,136,0.35)';
     const dimClr       = isDark ? 'rgba(206,208,206,0.22)' : 'rgba(28,34,38,0.22)';
 
     // Screw positions: 4 corners

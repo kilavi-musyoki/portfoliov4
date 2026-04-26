@@ -98,11 +98,11 @@ const Contact = ({ isDark }) => {
     // Component-specific tokens (oscilloscope display)
     const sectionBg        = isDark ? 'rgba(57,65,57,1)'             : 'transparent';
     const scopeBg          = isDark ? '#000810'                       : '#2E3A42';
-    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'        : 'rgba(192,120,56,0.55)';
-    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'       : 'rgba(192,120,56,0.09)';
-    const scopeLabelColor  = isDark ? 'rgba(107,113,107,0.7)'        : 'rgba(192,120,56,0.7)';
-    const waveColor        = isDark ? '#9ca09c'                      : '#C07838';
-    const ecgColor         = isDark ? '#4ade80'                      : '#C07838';
+    const scopeBorderColor = isDark ? 'rgba(107,113,107,0.6)'        : 'rgba(13,148,136,0.55)';
+    const scopeGridColor   = isDark ? 'rgba(107,113,107,0.07)'       : 'rgba(13,148,136,0.09)';
+    const scopeLabelColor  = isDark ? 'rgba(107,113,107,0.7)'        : 'rgba(13,148,136,0.7)';
+    const waveColor        = isDark ? '#9ca09c'                      : '#0D9488';
+    const ecgColor         = isDark ? '#4ade80'                      : '#0D9488';
 
     // ── Idle/typing oscilloscope animation ────────────────────────────────────
     useEffect(() => {

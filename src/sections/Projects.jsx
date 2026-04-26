@@ -142,13 +142,13 @@ const ProjectCard = ({ project, isDark, isExpanded, onToggle }) => {
     // consistent warm card style instead of deriving from those dark colors.
     const borderColor = isDark
         ? `${project.color}${isExpanded ? '55' : '22'}`
-        : isExpanded ? 'rgba(192,120,56,0.55)' : 'rgba(104,112,120,0.35)';
+        : isExpanded ? 'rgba(13,148,136,0.55)' : 'rgba(104,112,120,0.35)';
     const bgCard = isDark
         ? `${project.color}${isExpanded ? '0a' : '06'}`
         : isExpanded ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)';
 
     // Module color badge — must be visible in both modes
-    const moduleColor = isDark ? project.color : '#C07838';
+    const moduleColor = isDark ? project.color : '#0D9488';
 
 
     return (

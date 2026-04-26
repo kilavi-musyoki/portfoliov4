@@ -140,7 +140,7 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
             if (canvas) {
                 const cx = canvas.width / 2;
                 const cy = canvas.height / 2;
-                const color = isDark ? '#4BD8A0' : '#C07838';
+                const color = isDark ? '#4BD8A0' : '#0D9488';
                 emitBurst(particlesRef.current, 18, cx, cy, color);
                 // Secondary burst with accent color
                 const color2 = isDark ? '#6FD4FF' : '#D4A843';
@@ -204,7 +204,7 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
                     const count = Math.min(3, Math.floor(vel * 120));
                     const cx = canvas.width / 2;
                     const cy = canvas.height / 2;
-                    const color = isDark ? 'rgba(75,216,160,0.8)' : 'rgba(192,120,56,0.8)';
+                    const color = isDark ? 'rgba(75,216,160,0.8)' : 'rgba(13,148,136,0.8)';
                     for (let i = 0; i < count; i++) {
                         if (particlesRef.current.length < MAX_PARTICLES) {
                             const px = cx + (Math.random() - 0.5) * canvas.width * 0.6;
@@ -248,8 +248,8 @@ export default memo(function DeviceCanvas({ leverValue, isDark, mousePosRef, gli
     const shadowFade = Math.max(0, Math.min(1, (smoothLever - 0.45) / 0.15));
     const shadowAlpha = 1 - shadowFade;
 
-    const beamColor = isDark ? 'rgba(0,255,136,0.18)' : 'rgba(192,120,56,0.14)';
-    const accentRgb = isDark ? '75,216,160' : '192,120,56';
+    const beamColor = isDark ? 'rgba(0,255,136,0.18)' : 'rgba(13,148,136,0.14)';
+    const accentRgb = isDark ? '75,216,160' : '13,148,136';
     const screenShadow = `
         0 0 22px rgba(75,216,160,${Math.max(0, 0.16 + (1 - smoothLever) * 0.18 - shadowFade)}),
         inset 0 0 12px rgba(0,0,0,${0.82 * shadowAlpha}),

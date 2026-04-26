@@ -29,17 +29,17 @@
   --z-iris:      99990;  /* iris wipe transition           */
   --z-debug:     99999;  /* debug overlay HUD              */
 
-  /* Light mode palette — earthy industrial */
-  --lm-bg:         #E8EAE7;   /* warm light gray-green base */
-  --lm-bg-alt:     #D6D9D5;   /* slightly darker variant for cards */
-  --lm-bg-card:    rgba(255,255,255,0.45); /* glass card surface */
-  --lm-text:       #1C2226;   /* deep navy-charcoal */
-  --lm-dim:        rgba(28,34,38,0.52);
-  --lm-accent:     #C07838;   /* burnt orange */
-  --lm-accent-alt: #A0622C;   /* deeper orange for hover */
-  --lm-glow:       rgba(192,120,56,0.35);
-  --lm-border:     rgba(104,112,120,0.45);
-  --lm-border-alt: rgba(104,112,120,0.25);
+  /* Light mode palette — Clean Silicon */
+  --lm-bg:         #F8FAFC;   /* crisp slate-white */
+  --lm-bg-alt:     #F1F5F9;   /* slightly darker variant for cards */
+  --lm-bg-card:    rgba(255,255,255,0.7); /* glass card surface */
+  --lm-text:       #0F172A;   /* deep slate */
+  --lm-dim:        rgba(15,23,42,0.55);
+  --lm-accent:     #0D9488;   /* vibrant tech teal */
+  --lm-accent-alt: #0F766E;   /* deeper teal for hover */
+  --lm-glow:       rgba(13,148,136,0.35);
+  --lm-border:     rgba(148,163,184,0.45);
+  --lm-border-alt: rgba(148,163,184,0.25);
 }
 
 /* ===== Base Reset ===== */
@@ -63,19 +63,19 @@ body {
   transition: background 0.6s ease, color 0.6s ease;
 }
 
-/* Light mode body — earthy industrial palette */
+/* Light mode body — Clean Silicon palette */
 body.light-mode {
   background: var(--lm-bg);
   color: var(--lm-text);
   --pcb-green: var(--lm-accent);
-  --cap-cyan: #687078;
+  --cap-cyan: #94A3B8;
 
   /* Resolved token overrides */
-  --color-text:    #1C2226;
-  --color-accent:  #C07838;
-  --color-dim:     rgba(28,34,38,0.52);
-  --color-border:  rgba(104,112,120,0.4);
-  --color-card-bg: rgba(255,255,255,0.35);
+  --color-text:    #0F172A;
+  --color-accent:  #0D9488;
+  --color-dim:     rgba(15,23,42,0.55);
+  --color-border:  rgba(148,163,184,0.4);
+  --color-card-bg: rgba(255,255,255,0.7);
 }
 
 /* ===== Noise Texture Overlay ===== */
@@ -108,6 +108,37 @@ body::after {
 /* Light mode — no scanlines */
 body.light-mode::after {
   opacity: 0;
+}
+
+/* ===== Accessibility ===== */
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  background: var(--base);
+  color: var(--pcb-green);
+  padding: 12px 24px;
+  z-index: 100000;
+  transition: top 0.2s ease-out;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  border-bottom: 2px solid var(--pcb-green);
+  border-right: 2px solid var(--pcb-green);
+  border-radius: 0 0 4px 0;
+  font-weight: bold;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid var(--cap-cyan);
+  outline-offset: 2px;
+}
+
+body.light-mode .skip-link {
+  background: var(--lm-bg);
+  color: var(--lm-accent);
+  border-color: var(--lm-accent);
 }
 
 /* ===== Scrollbar ===== */
@@ -415,7 +446,7 @@ body.light-mode .changelog-entry::before {
 }
 
 body.light-mode .changelog-entry {
-  border-left-color: rgba(192,120,56,0.45);
+  border-left-color: rgba(13,148,136,0.45);
 }
 
 /* ===== Status bar ===== */
@@ -535,21 +566,26 @@ body.light-mode .datasheet-table td {
     height: 80px;
   }
 
-  /* Hide full nav link cluster on small phones so logo/title stay visible */
+  /* Desktop nav links hidden on mobile — replaced by hamburger drawer */
   .nav-links {
     display: none !important;
+  }
+
+  /* Show the hamburger controls on mobile */
+  .mobile-nav-controls {
+    display: flex !important;
   }
 }
 
 body.light-mode .oscilloscope-container {
   background: #2E3A42;
-  border-color: rgba(192,120,56,0.55);
+  border-color: rgba(13,148,136,0.55);
 }
 
 body.light-mode .oscilloscope-grid {
   background-image:
-    linear-gradient(rgba(192,120,56,0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(192,120,56,0.09) 1px, transparent 1px);
+    linear-gradient(rgba(13,148,136,0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,148,136,0.09) 1px, transparent 1px);
 }
 
 /* @keyframes levitate — canonical (no-rotation) definition is further below */
@@ -622,7 +658,7 @@ body.light-mode::before {
 
 /* Selection color */
 body.light-mode ::selection {
-  background: rgba(192,120,56,0.2);
+  background: rgba(13,148,136,0.2);
   color: var(--lm-accent);
 }
 
@@ -732,4 +768,96 @@ body.light-mode .lever-range-input::-webkit-slider-thumb {
 @keyframes success-check-draw {
   from { stroke-dashoffset: 28; opacity: 0; }
   to   { stroke-dashoffset: 0;  opacity: 1; }
+}
+
+/* ===== Mobile Nav Controls ===== */
+.mobile-nav-controls {
+  display: none;          /* hidden on desktop; toggled on by media query */
+  align-items: center;
+  gap: 10px;
+}
+
+/* ===== Hamburger Button ===== */
+.hamburger-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.hamburger-btn:hover {
+  border-color: var(--color-accent);
+  background: rgba(206, 208, 206, 0.07);
+}
+body.light-mode .hamburger-btn:hover {
+  background: rgba(192, 120, 56, 0.08);
+}
+.hamburger-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.hamburger-bar {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: var(--color-text);
+  border-radius: 1px;
+  transform-origin: center;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+/* Animate bars into an X when drawer is open */
+.hamburger-btn.is-open .hamburger-bar:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.hamburger-btn.is-open .hamburger-bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger-btn.is-open .hamburger-bar:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* ===== Mobile Drawer Nav Links ===== */
+.mobile-drawer-link {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 0.9rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.08em;
+  display: block;
+  transition: color 0.2s ease, padding-left 0.2s ease;
+}
+.mobile-drawer-link:hover {
+  color: var(--color-accent);
+  padding-left: 0.75rem;
+}
+.mobile-drawer-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  color: var(--color-accent);
+}
+
+/* ===== Mobile Nav Backdrop ===== */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  top: 56px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  cursor: pointer;
+}
+body.light-mode .mobile-overlay {
+  background: rgba(28, 34, 38, 0.25);
 }

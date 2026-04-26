@@ -50,13 +50,13 @@ const Hero = ({ isDark, glitch = false }) => {
     const tagBg          = isDark ? 'rgba(206,208,206,0.06)'    : 'rgba(255,255,255,0.35)';
     const statusBg       = isDark ? 'rgba(206,208,206,0.03)'    : 'rgba(255,255,255,0.25)';
     const statusBorder   = isDark ? 'rgba(206,208,206,0.15)'    : 'rgba(104,112,120,0.25)';
-    const progressTrack  = isDark ? 'rgba(75,216,160,0.15)'     : 'rgba(192,120,56,0.15)';
+    const progressTrack  = isDark ? 'rgba(75,216,160,0.15)'     : 'rgba(13,148,136,0.15)';
     const progressFill   = isDark
         ? 'linear-gradient(90deg,#4BD8A0,#6FD4FF)'
-        : 'linear-gradient(90deg,#C07838,#D4A843)';
+        : 'linear-gradient(90deg,#0D9488,#D4A843)';
     const terminalBg     = isDark ? '#050808'                   : '#E8EAE7';
-    const terminalBorder = isDark ? 'rgba(75,216,160,0.3)'      : 'rgba(192,120,56,0.35)';
-    const terminalLabel  = isDark ? 'rgba(75,216,160,0.5)'      : 'rgba(192,120,56,0.6)';
+    const terminalBorder = isDark ? 'rgba(75,216,160,0.3)'      : 'rgba(13,148,136,0.35)';
+    const terminalLabel  = isDark ? 'rgba(75,216,160,0.5)'      : 'rgba(13,148,136,0.6)';
 
     const lineColors = {
         0: dimColor,

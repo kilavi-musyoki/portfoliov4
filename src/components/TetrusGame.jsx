@@ -24,17 +24,19 @@ const CTRL_ZONE_RATIO = 0.30; // bottom 30% = controls
 // ── Button definitions ────────────────────────────────────────────────────────
 const BTN_DEFS = [
     { id:'rotate', icon:'↺', label:'ROT',  key:'ArrowUp',    color:'#6FD4FF', repeat:false, xFrac:0.10 },
-    { id:'left',   icon:'◄', label:'',     key:'ArrowLeft',  color:'#4BD8A0', repeat:true,  xFrac:0.24 },
-    { id:'right',  icon:'►', label:'',     key:'ArrowRight', color:'#4BD8A0', repeat:true,  xFrac:0.38 },
+    { id:'left',   icon:'◄', label:'',     key:'ArrowLeft',  color:'#0D9488', repeat:true,  xFrac:0.24 },
+    { id:'right',  icon:'►', label:'',     key:'ArrowRight', color:'#0D9488', repeat:true,  xFrac:0.38 },
     { id:'down',   icon:'▼', label:'SOFT', key:'ArrowDown',  color:'#D4A843', repeat:true,  xFrac:0.52 },
     { id:'drop',   icon:'⬇', label:'DROP', key:' ',          color:'#E040FB', repeat:false, xFrac:0.82, big:true },
 ];
 const DIVIDER_FRAC = 0.665; // divides D-pad from action button
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
+let _isMuted = false;
 const _arc = (() => {
     let actx = null;
     return (freq, type='sine', dur=0.05, vol=0.04) => {
+        if(_isMuted) return;
         try {
             if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
             if (actx.state === 'suspended') actx.resume();
@@ -114,6 +116,8 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
     const pressedBtnRef = useRef(null);
     const btnTimerRef   = useRef(null);
     const btnIntervalRef= useRef(null);
+    const pauseMenuRef  = useRef(0);
+    const justUnpausedRef = useRef(false);
 
     useEffect(()=>{ glitchRef.current = glitchLevel; }, [glitchLevel]);
 
@@ -213,7 +217,44 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             landPiece(true);
         };
 
+        const togglePause = () => {
+            if (stateRef.current === 'playing') {
+                stateRef.current = 'paused';
+                pauseMenuRef.current = 0;
+            } else if (stateRef.current === 'paused') {
+                stateRef.current = 'playing';
+                justUnpausedRef.current = true;
+            }
+        };
+
         const execBtn = key=>{
+            if (key==='p' || key==='P' || key==='Escape') {
+                togglePause();
+                return;
+            }
+
+            if (stateRef.current === 'paused') {
+                if (key === 'ArrowUp') {
+                    pauseMenuRef.current = (pauseMenuRef.current - 1 + 3) % 3;
+                    SFX.move();
+                } else if (key === 'ArrowDown') {
+                    pauseMenuRef.current = (pauseMenuRef.current + 1) % 3;
+                    SFX.move();
+                } else if (key === ' ' || key === 'Enter') {
+                    SFX.rotate();
+                    if (pauseMenuRef.current === 0) {
+                        togglePause();
+                    } else if (pauseMenuRef.current === 1) {
+                        _isMuted = !_isMuted;
+                    } else if (pauseMenuRef.current === 2) {
+                        resetGame();
+                        stateRef.current = 'playing';
+                        justUnpausedRef.current = true;
+                    }
+                }
+                return;
+            }
+
             if(!canInput()) return;
             if     (key==='ArrowLeft')  tryMove(-1);
             else if(key==='ArrowRight') tryMove(1);
@@ -642,6 +683,45 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             ctx.textAlign='left';
         };
 
+        const drawPaused = (ts) => {
+            const cx=boardX+(COLS*cellSize)/2, cy=boardY+(ROWS*cellSize)/2;
+            const fS=Math.max(8,Math.floor(cellSize*1.05));
+            const subS=Math.max(6,Math.floor(cellSize*0.7));
+            
+            ctx.fillStyle='rgba(0,10,4,0.85)'; ctx.fillRect(boardX,boardY,COLS*cellSize,ROWS*cellSize);
+            ctx.strokeStyle='rgba(75,216,160,0.4)'; ctx.lineWidth=2;
+            ctx.strokeRect(boardX+8,boardY+8,COLS*cellSize-16,ROWS*cellSize-16);
+
+            ctx.textAlign='center';
+            ctx.font=`bold ${fS}px "JetBrains Mono",monospace`;
+            ctx.fillStyle='#00E5FF'; ctx.shadowColor='#00E5FF'; ctx.shadowBlur=fS*0.8;
+            ctx.fillText('OPERATOR MENU',cx,boardY + ROWS*cellSize*0.25);
+            ctx.shadowBlur=0;
+            
+            // Menu items
+            const items = ['RESUME', `SOUND: ${_isMuted ? 'OFF' : 'ON'}`, 'RESTART'];
+            ctx.font=`bold ${subS}px "JetBrains Mono",monospace`;
+            
+            items.forEach((item, i) => {
+                const y = cy + (i - 0.5) * subS * 2.5;
+                if (pauseMenuRef.current === i) {
+                    ctx.fillStyle='#FFD600'; ctx.shadowColor='#FFD600'; ctx.shadowBlur=subS*0.5;
+                    ctx.fillText(`> ${item} <`, cx, y);
+                    ctx.shadowBlur=0;
+                } else {
+                    ctx.fillStyle='rgba(75,216,160,0.6)';
+                    ctx.fillText(item, cx, y);
+                }
+            });
+            
+            // Instructions
+            ctx.font=`${Math.max(4,Math.floor(cellSize*0.45))}px "JetBrains Mono",monospace`;
+            ctx.fillStyle='rgba(75,216,160,0.3)';
+            ctx.fillText('D-PAD: SELECT   DROP: CONFIRM',cx,boardY + ROWS*cellSize*0.9);
+
+            ctx.textAlign='left';
+        };
+
         const drawSignalLost = (norm, ts) => {
             const cx=boardX+(COLS*cellSize)/2, cy=boardY+(ROWS*cellSize)/2;
             const t = ts * 0.01;
@@ -802,6 +882,20 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
         };
 
         const handleKey = e => {
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape' || e.key === 'Enter') {
+                execBtn(e.key);
+                e.preventDefault();
+                return;
+            }
+
+            if (stateRef.current === 'paused') {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === ' ') {
+                    execBtn(e.key);
+                    e.preventDefault();
+                }
+                return;
+            }
+
             if(!canInput()) return;
             switch(e.key){
                 case 'ArrowLeft':  tryMove(-1);  e.preventDefault(); break;
@@ -816,12 +910,13 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             const t=e.touches[0];
             const rect=canvas.getBoundingClientRect();
             const relY=t.clientY-rect.top;
-            if(relY*dpr>=gameH){
+            if(relY*dpr<gameH){
                 e.preventDefault();
-                const btn=hitBtn(t.clientX-rect.left,relY);
-                if(btn) pressBtn(btn);
+                togglePause();
                 return;
             }
+            const btn=hitBtn(t.clientX-rect.left,relY);
+            if(btn) pressBtn(btn);
             touchRef.current={x:t.clientX,y:t.clientY,ts:Date.now()};
         };
         const handleTouchEnd = e => {
@@ -840,7 +935,10 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
         const handleMouseDown=e=>{
             const rect=canvas.getBoundingClientRect();
             const relX=e.clientX-rect.left,relY=e.clientY-rect.top;
-            if(relY*dpr<gameH) return;
+            if(relY*dpr<gameH) {
+                togglePause();
+                return;
+            }
             const btn=hitBtn(relX,relY);
             if(btn){e.preventDefault();pressBtn(btn);}
         };
@@ -886,9 +984,13 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
 
             drawBoard(ts, gl);
 
-            if(state==='playing' || state==='glitched'){
+            if(state==='playing' || state==='glitched' || state==='paused'){
                 drawCurrentAndGhost(gl);
-                if(Date.now()>=flashEndRef.current){
+                if (justUnpausedRef.current) {
+                    lastDropRef.current = ts;
+                    justUnpausedRef.current = false;
+                }
+                if(state !== 'paused' && Date.now()>=flashEndRef.current){
                     const interval=DROP_INTERVALS[Math.min(levelRef.current,DROP_INTERVALS.length-1)];
                     if(ts-lastDropRef.current>=interval){
                         lastDropRef.current=ts;
@@ -914,6 +1016,7 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
                 }
             }
             if(state==='gameover') drawGameOver(ts);
+            if(state==='paused') drawPaused(ts);
         };
 
         rafRef.current = requestAnimationFrame(loop);

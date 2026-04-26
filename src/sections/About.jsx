@@ -209,7 +209,7 @@ const About = ({ isDark }) => {
                     fontSize: '0.7rem',
                     color: dimColor,
                   }}>
-                    {spec.value}
+                    {spec.value}%
                   </span>
                 </motion.div>
               ))}

@@ -2,7 +2,7 @@ import React from 'react';
 
 const ThemeToggle = ({ isDark, onToggle }) => {
     const labelColor = isDark ? 'rgba(206,208,206,0.7)' : 'rgba(28,34,38,0.52)';
-    const accentColor = isDark ? '#ced0ce' : '#C07838';
+    const accentColor = isDark ? '#ced0ce' : '#0D9488';
     const borderIdle = isDark ? 'rgba(107,113,107,0.5)' : 'rgba(104,112,120,0.4)';
     const bgColor = isDark ? 'rgba(57,65,57,0.8)' : 'rgba(255,255,255,0.45)';
 
@@ -24,7 +24,7 @@ const ThemeToggle = ({ isDark, onToggle }) => {
             }}
             onMouseEnter={e => {
                 e.currentTarget.style.borderColor = accentColor;
-                e.currentTarget.style.boxShadow = `0 0 10px ${isDark ? 'rgba(206,208,206,0.2)' : 'rgba(192,120,56,0.25)'}`;
+                e.currentTarget.style.boxShadow = `0 0 10px ${isDark ? 'rgba(206,208,206,0.2)' : 'rgba(13,148,136,0.25)'}`;
             }}
             onMouseLeave={e => {
                 e.currentTarget.style.borderColor = borderIdle;
@@ -38,7 +38,7 @@ const ThemeToggle = ({ isDark, onToggle }) => {
                     height: 7,
                     borderRadius: '50%',
                     background: accentColor,
-                    boxShadow: `0 0 6px ${isDark ? 'rgba(206,208,206,0.5)' : 'rgba(192,120,56,0.5)'}`,
+                    boxShadow: `0 0 6px ${isDark ? 'rgba(206,208,206,0.5)' : 'rgba(13,148,136,0.5)'}`,
                 }}
             />
             <span
