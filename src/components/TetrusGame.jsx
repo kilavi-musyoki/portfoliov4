@@ -19,7 +19,7 @@ const DROP_INTERVALS = [820,700,600,500,400,300,220,150,100,80,60];
 const GLITCH_LIGHT  = 0.20;
 const GLITCH_HEAVY  = 0.40;
 const GLITCH_RESUME = 0.06;
-const CTRL_ZONE_RATIO = 0.30; // bottom 30% = controls
+const CTRL_ZONE_RATIO = 0.38; // bottom 38% = controls
 
 // ── Button definitions ────────────────────────────────────────────────────────
 const BTN_DEFS = [
@@ -149,14 +149,14 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
             boardY = Math.floor((gameH - ROWS * cellSize) / 2);
             infoX  = leftPad + COLS*cellSize + Math.max(Math.floor(dpr*5), Math.floor(W*0.024));
 
-            // Compute buttons
+            // Compute buttons — larger on mobile
             const cy  = gameH + ctrlH/2;
-            const br  = Math.min(Math.floor(ctrlH*0.33), Math.floor(W*0.068));
+            const br  = Math.min(Math.floor(ctrlH*0.38), Math.floor(W*0.082));
             btnsRef.current = BTN_DEFS.map(def=>({
                 ...def,
                 x: Math.round(W * def.xFrac),
                 y: Math.round(cy),
-                r: def.big ? Math.round(br*1.32) : br,
+                r: def.big ? Math.round(br*1.35) : br,
             }));
         };
 
@@ -916,11 +916,20 @@ export default memo(function TetrusGame({ glitchLevel=0 }) {
                 return;
             }
             const btn=hitBtn(t.clientX-rect.left,relY);
-            if(btn) pressBtn(btn);
+            if(btn){
+                // Button tap: handle immediately & nullify touchRef so
+                // handleTouchEnd won't fire a second gesture action.
+                e.preventDefault();
+                pressBtn(btn);
+                touchRef.current=null;
+                return;
+            }
             touchRef.current={x:t.clientX,y:t.clientY,ts:Date.now()};
         };
         const handleTouchEnd = e => {
-            if(pressedBtnRef.current){releaseBtn();return;}
+            // If a canvas button was released, clean up repeater and bail out.
+            // touchRef is null when a button was tapped, so gesture logic is skipped.
+            if(pressedBtnRef.current){releaseBtn();touchRef.current=null;return;}
             if(!touchRef.current||!canInput()){touchRef.current=null;return;}
             const t=e.changedTouches[0];
             const dx=t.clientX-touchRef.current.x, dy=t.clientY-touchRef.current.y;
