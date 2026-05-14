@@ -2,17 +2,40 @@
 // Deploy: this file goes in /api/contact.js at project root
 // If using Vercel, this auto-deploys as an API route: POST /api/contact
 
-// To use: npm install nodemailer in root, add env vars to Vercel dashboard
-
 const nodemailer = require('nodemailer');
 
+// ── In-memory rate limiter ─────────────────────────────────────────────────
+// Limits each IP to 5 requests per minute. Resets on cold starts (acceptable
+// for a low-traffic portfolio). No external dependencies needed.
+const _rlStore = new Map();
+const RL_WINDOW_MS   = 60 * 1000; // 1-minute window
+const RL_MAX_REQ     = 5;         // max submissions per IP per window
+
+function checkRateLimit(ip) {
+    const now   = Date.now();
+    const entry = _rlStore.get(ip) || { count: 0, resetAt: now + RL_WINDOW_MS };
+    if (now > entry.resetAt) {
+        entry.count   = 0;
+        entry.resetAt = now + RL_WINDOW_MS;
+    }
+    entry.count++;
+    _rlStore.set(ip, entry);
+    return { allowed: entry.count <= RL_MAX_REQ };
+}
+
 module.exports = async (req, res) => {
-    // CORS headers
+    // ── IP-based rate limiting ───────────────────────────────────────────────
+    const clientIp = ((req.headers['x-forwarded-for'] || '') + '').split(',')[0].trim()
+                     || req.socket?.remoteAddress
+                     || 'unknown';
+    if (!checkRateLimit(clientIp).allowed) {
+        return res.status(429).json({ error: 'Too many requests. Please wait a minute before trying again.' });
+    }
+
+    // ── CORS — localhost only allowed outside production ─────────────────────
     const origin = req.headers.origin;
-    const allowedOrigins = [
-        'http://localhost:5173',
-        'https://kilavi-musyoki.github.io'
-    ];
+    const allowedOrigins = ['https://kilavi-musyoki.github.io'];
+    if (process.env.VERCEL_ENV !== 'production') allowedOrigins.push('http://localhost:5173');
     if (process.env.ALLOWED_ORIGIN) allowedOrigins.push(process.env.ALLOWED_ORIGIN);
 
     if (origin && !allowedOrigins.includes(origin)) {
