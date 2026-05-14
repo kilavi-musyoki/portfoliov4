@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { getTheme } from '../theme.js';
 
 // ── Responsive hook ────────────────────────────────────────────────────────────
@@ -78,9 +79,11 @@ const Contact = ({ isDark }) => {
     const [status,      setStatus]      = useState('idle'); // idle | sending | sent | error
     const [isTyping,    setIsTyping]    = useState(false);
     const [ecgPhase,    setEcgPhase]    = useState(0);   // drives isHeart render logic; updated only on phase change
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const turnstileRef = useRef(null);
 
-    // ── Google Sheets webhook ──────────────────────────────────────────────────
-    const webhook = import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK;
+    // ── Backend Proxy Endpoint ──────────────────────────────────────────────────
+    const webhook = (import.meta.env.VITE_API_BASE_URL || '') + '/api/sheet-proxy';
 
     // ── Responsive breakpoints ─────────────────────────────────────────────────
     const windowWidth = useWindowWidth();
@@ -122,7 +125,6 @@ const Contact = ({ isDark }) => {
     // ── ECG success animation: 2 sweeps then hold flatline ───────────────────
     useEffect(() => {
         if (status !== 'sent') {
-            setEcgPhase(0);
             return;
         }
         let progress = 0;
@@ -159,6 +161,9 @@ const Contact = ({ isDark }) => {
     const resetForm = useCallback(() => {
         setFormData({ name: '', email: '', subject: '', message: '' });
         setStatus('idle');
+        setEcgPhase(0);
+        setTurnstileToken('');
+        turnstileRef.current?.reset();
     }, []);
 
     const handleInput = useCallback((e) => {
@@ -170,36 +175,54 @@ const Contact = ({ isDark }) => {
     }, []);
 
     // ── Shared Google Sheets logger ────────────────────────────────────────────
-    const logToSheet = useCallback((payload) => {
-        if (!webhook) return;
-        fetch(webhook, {
+    const logToSheet = useCallback(async (payload) => {
+        if (!webhook) throw new Error('Webhook URL not configured');
+        const response = await fetch(webhook, {
             method:  'POST',
-            mode:    'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(payload),
-        }).catch(() => {});
+        });
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
     }, [webhook]);
 
     // ── Form submit → Google Sheets ────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
         // Guard: webhook URL must be configured for the form to work
-        if (!webhook) { setStatus('error'); return; }
+        if (!webhook) { 
+            setStatus('error'); 
+            setEcgPhase(0);
+            return; 
+        }
+
+        const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+        if (siteKey && !turnstileToken) {
+            alert('Please complete the security check.');
+            return;
+        }
+
         setStatus('sending');
+        setEcgPhase(0);
         try {
-            logToSheet({
+            await logToSheet({
                 type:      'contact',
                 timestamp: new Date().toISOString(),
                 name:      formData.name,
                 email:     formData.email,
                 subject:   formData.subject,
                 message:   formData.message,
+                turnstileToken,
             });
             setStatus('sent');
+            turnstileRef.current?.reset();
         } catch (err) {
             console.error('Contact send error:', err);
             setStatus('error');
             setTimeout(() => setStatus('idle'), 4000);
+            turnstileRef.current?.reset();
         }
     };
 
@@ -744,25 +767,41 @@ const Contact = ({ isDark }) => {
                             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
                                 <div>
                                     <label style={labelStyle}>NAME</label>
-                                    <input className="hud-input" type="text" name="name" value={formData.name} onChange={handleInput} placeholder="Your name" required />
+                                    <input className="hud-input" type="text" name="name" value={formData.name} onChange={handleInput} placeholder="Your name" required maxLength={100} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>EMAIL</label>
-                                    <input className="hud-input" type="email" name="email" value={formData.email} onChange={handleInput} placeholder="your@email.com" required />
+                                    <input className="hud-input" type="email" name="email" value={formData.email} onChange={handleInput} placeholder="your@email.com" required maxLength={254} />
                                 </div>
                             </div>
 
                             {/* Subject */}
                             <div>
                                 <label style={labelStyle}>SUBJECT</label>
-                                <input className="hud-input" type="text" name="subject" value={formData.subject} onChange={handleInput} placeholder="What do you want to build?" />
+                                <input className="hud-input" type="text" name="subject" value={formData.subject} onChange={handleInput} placeholder="What do you want to build?" maxLength={200} />
                             </div>
 
                             {/* Message */}
                             <div>
                                 <label style={labelStyle}>MESSAGE</label>
-                                <textarea className="hud-input" name="message" value={formData.message} onChange={handleInput} placeholder="Describe what you're building..." required rows={5} style={{ resize: 'vertical' }} />
+                                <textarea className="hud-input" name="message" value={formData.message} onChange={handleInput} placeholder="Describe what you're building..." required rows={5} style={{ resize: 'vertical' }} maxLength={5000} />
                             </div>
+
+                            {/* Turnstile Widget */}
+                            {import.meta.env.VITE_TURNSTILE_SITE_KEY && (
+                                <div style={{ minHeight: '65px', display: 'flex', justifyContent: 'center', margin: '4px 0' }}>
+                                    <Turnstile
+                                        ref={turnstileRef}
+                                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                                        onSuccess={(token) => setTurnstileToken(token)}
+                                        onError={() => setTurnstileToken('')}
+                                        onExpire={() => setTurnstileToken('')}
+                                        options={{
+                                            theme: isDark ? 'dark' : 'light',
+                                        }}
+                                    />
+                                </div>
+                            )}
 
                             {/* Submit button */}
                             <button
