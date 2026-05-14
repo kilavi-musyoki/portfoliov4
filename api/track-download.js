@@ -3,7 +3,6 @@
 // POST /api/track-download
 // Logs a CV download event to Google Sheets via the sheet-proxy webhook.
 // Called by the frontend when a user downloads the CV.
-// No Turnstile required (no user content is submitted).
 
 // ── In-memory rate limiter (10 downloads / IP / min) ─────────────────────
 const _rlStore    = new Map();
@@ -17,6 +16,18 @@ function checkRateLimit(ip) {
     entry.count++;
     _rlStore.set(ip, entry);
     return { allowed: entry.count <= RL_MAX_REQ };
+}
+
+// ── Shared sanitizer — prevents Google Sheets formula injection ──────────
+function sanitizeForSheets(value) {
+    if (typeof value !== 'string') return '';
+    // Strip any leading formula-trigger characters
+    let sanitized = value;
+    if (/^[=+\-@]/.test(sanitized)) {
+        sanitized = "'" + sanitized;
+    }
+    // Length cap — Referer can be arbitrarily long
+    return sanitized.slice(0, 500);
 }
 
 export default async function handler(req, res) {
@@ -45,12 +56,23 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests.' });
     }
 
+    // ── Origin validation — only allow requests that came from our own site ──
+    // This blocks direct curl/Postman abuse since they won't have a matching Origin.
+    // Combined with CORS, this provides defense-in-depth.
+    if (!origin || !allowedOrigins.includes(origin)) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
     // ── Log to Google Sheets ──────────────────────────────────────────────
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK;
     if (!webhookUrl) {
         console.error('GOOGLE_SHEET_WEBHOOK is not configured.');
         return res.status(500).json({ error: 'Server configuration error' });
     }
+
+    // Sanitize the Referer header — it's attacker-controlled and could contain
+    // Google Sheets formula injection payloads (e.g. =IMPORTRANGE(...))
+    const safeReferer = sanitizeForSheets(req.headers.referer || 'unknown page');
 
     try {
         await fetch(webhookUrl, {
@@ -62,7 +84,7 @@ export default async function handler(req, res) {
                 name:      '—',
                 email:     '—',
                 subject:   'CV Download',
-                message:   `CV downloaded from ${req.headers.referer || 'unknown page'}`,
+                message:   `CV downloaded from ${safeReferer}`,
             }),
         });
 

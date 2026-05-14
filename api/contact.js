@@ -2,7 +2,7 @@
 // Deploy: this file goes in /api/contact.js at project root
 // If using Vercel, this auto-deploys as an API route: POST /api/contact
 
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 // ── In-memory rate limiter ─────────────────────────────────────────────────
 // Limits each IP to 5 requests per minute. Resets on cold starts (acceptable
@@ -23,7 +23,7 @@ function checkRateLimit(ip) {
     return { allowed: entry.count <= RL_MAX_REQ };
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     // ── IP-based rate limiting ───────────────────────────────────────────────
     const clientIp = ((req.headers['x-forwarded-for'] || '') + '').split(',')[0].trim()
                      || req.socket?.remoteAddress
@@ -115,6 +115,9 @@ module.exports = async (req, res) => {
     const safeSubject = escapeHtml(subject);
     const safeMessage = escapeHtml(message);
 
+    // Recipient email — sourced from env var for flexibility
+    const recipientEmail = process.env.CONTACT_RECIPIENT || 'musyokikilavi870@gmail.com';
+
     try {
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
@@ -128,7 +131,7 @@ module.exports = async (req, res) => {
 
         await transporter.sendMail({
             from: `"Silicon Soul Portfolio" <${process.env.GMAIL_USER}>`,
-            to: 'musyokikilavi870@gmail.com',
+            to: recipientEmail,
             replyTo: email, // Note: Not using safeEmail here because it needs to be valid email for replyTo
             subject: `[Portfolio] ${safeSubject || 'New contact from ' + safeName}`,
             html: `
@@ -153,4 +156,4 @@ module.exports = async (req, res) => {
         console.error('Email send error:', err);
         res.status(500).json({ error: 'Transmission failed. Check SMTP configuration.' });
     }
-};
+}

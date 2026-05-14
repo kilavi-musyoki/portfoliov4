@@ -18,6 +18,21 @@ function checkRateLimit(ip) {
 }
 
 export default async function handler(req, res) {
+  // ── CORS — restrict to known origins ──────────────────────────────────
+  const origin = req.headers.origin;
+  const allowedOrigins = ['https://kilavi-musyoki.github.io'];
+  if (process.env.VERCEL_ENV !== 'production') allowedOrigins.push('http://localhost:5173');
+  if (process.env.ALLOWED_ORIGIN) allowedOrigins.push(process.env.ALLOWED_ORIGIN);
+
+  if (origin && !allowedOrigins.includes(origin)) {
+    return res.status(403).json({ error: 'CORS policy violation' });
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', origin || allowedOrigins[0]);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -47,5 +62,3 @@ export default async function handler(req, res) {
     until:   process.env.STATUS_UNTIL   || 'May 2026',
   });
 }
-
-
